@@ -40,7 +40,7 @@ class _DemoPageState extends State<DemoPage> {
 
     try {
       final jsonString = await rootBundle.loadString(
-        'web/static/data/userdata.json',
+        'assets/json/userdata.json',
       );
       final userData = UserData.fromJsonString(jsonString);
       final localizer = await StatLocalizer.load();
@@ -358,7 +358,7 @@ class StatLocalizer {
     if (_cache != null) {
       return _cache!;
     }
-    final content = await rootBundle.loadString('.plan/stats_l18n.json');
+    final content = await rootBundle.loadString('assets/json/stats_l18n.json');
     final Map<String, dynamic> data =
         jsonDecode(content) as Map<String, dynamic>;
     final labels = data.map((key, value) => MapEntry(key, value.toString()));
@@ -385,7 +385,9 @@ class StatAppendResolver {
     if (_cache != null) {
       return _cache!;
     }
-    final content = await rootBundle.loadString('.plan/stats_append.json');
+    final content = await rootBundle.loadString(
+      'assets/json/stats_append.json',
+    );
     final Map<String, dynamic> raw =
         jsonDecode(content) as Map<String, dynamic>;
     final values = <String, Map<String, String>>{};

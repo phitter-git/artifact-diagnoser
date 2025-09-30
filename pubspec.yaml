@@ -1,4 +1,4 @@
-﻿name: artifact_diagnoser
+name: artifact_diagnoser
 description: "A new Flutter project."
 publish_to: 'none'
 version: 0.1.0
@@ -18,9 +18,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - web/static/data/userdata.json
-    - .plan/stats_l18n.json
-    - .plan/stats_append.json
+    - assets/json/
     - assets/fonts/
     - assets/artifacts/
 

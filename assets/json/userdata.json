@@ -348,6 +348,45 @@
           }
         },
         {
+          "itemId": 80533,
+          "reliquary": {
+            "level": 21,
+            "mainPropId": 13008,
+            "appendPropIdList": [501024, 501083, 501091, 501244, 501244, 501243, 501243, 501244]
+          },
+          "flat": {
+            "nameTextMapHash": "1521031132",
+            "rankLevel": 5,
+            "itemType": "ITEM_RELIQUARY",
+            "icon": "UI_RelicIcon_15006_3",
+            "equipType": "EQUIP_DRESS",
+            "setId": 15006,
+            "setNameTextMapHash": "1524173875",
+            "reliquarySubstats": [
+              {
+                "appendPropId": "FIGHT_PROP_HP",
+                "statValue": 299
+              },
+              {
+                "appendPropId": "FIGHT_PROP_DEFENSE",
+                "statValue": 21
+              },
+              {
+                "appendPropId": "FIGHT_PROP_DEFENSE_PERCENT",
+                "statValue": 5.1
+              },
+              {
+                "appendPropId": "FIGHT_PROP_ELEMENT_MASTERY",
+                "statValue": 112
+              }
+            ],
+            "reliquaryMainstat": {
+              "mainPropId": "FIGHT_PROP_CRITICAL_HURT",
+              "statValue": 62.2
+            }
+          }
+        },
+        {
           "itemId": 13501,
           "weapon": {
             "level": 90,
