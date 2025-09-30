@@ -1,0 +1,33 @@
+﻿name: artifact_diagnoser
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - web/static/data/userdata.json
+    - .plan/stats_l18n.json
+    - .plan/stats_append.json
+    - assets/fonts/
+    - assets/artifacts/
+
+  fonts:
+    - family: GISDK
+      fonts:
+        - asset: assets/fonts/GISDK/ja-jp.ttf
+          weight: 100
+        - asset: assets/fonts/GISDK/zh-cn.ttf
+          weight: 300
