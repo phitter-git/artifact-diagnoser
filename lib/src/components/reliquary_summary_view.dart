@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:artifact_diagnoser/models/domain/reliquary_summary.dart';
-import 'package:artifact_diagnoser/common/format_utils.dart';
+import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
+import 'package:artifact_diagnoser/src/common/format_utils.dart';
 
 /// 聖遺物の解析結果を表示するコンポーネント
 class ReliquarySummaryView extends StatelessWidget {
@@ -28,7 +28,7 @@ class ReliquarySummaryView extends StatelessWidget {
                 ),
               ),
             if (summary.iconAssetPath != null) const SizedBox(height: 8),
-            
+
             // メインステータス表示
             if (summary.mainPropId != null)
               Padding(
@@ -38,14 +38,14 @@ class ReliquarySummaryView extends StatelessWidget {
                   '(${formatNumber(summary.mainStatValue)})',
                 ),
               ),
-            
+
             // 装備部位表示
             if (summary.equipType?.isNotEmpty == true)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text('装備部位: ${summary.equipTypeLabel}'),
               ),
-            
+
             // サブステータス表示
             const Text('サブステータス:'),
             for (final substat in summary.substats)

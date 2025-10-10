@@ -1,10 +1,10 @@
-import 'package:artifact_diagnoser/models/remote/user_data.dart';
-import 'package:artifact_diagnoser/models/domain/reliquary_summary.dart';
-import 'package:artifact_diagnoser/models/domain/mutable_substat.dart';
-import 'package:artifact_diagnoser/services/stat_localizer.dart';
-import 'package:artifact_diagnoser/services/stat_append_resolver.dart';
-import 'package:artifact_diagnoser/services/artifact_icon_resolver.dart';
-import 'package:artifact_diagnoser/common/format_utils.dart';
+import 'package:artifact_diagnoser/src/models/remote/user_data.dart';
+import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
+import 'package:artifact_diagnoser/src/models/domain/mutable_substat.dart';
+import 'package:artifact_diagnoser/src/services/stat_localizer.dart';
+import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/src/services/artifact_icon_resolver.dart';
+import 'package:artifact_diagnoser/src/common/format_utils.dart';
 
 /// 聖遺物解析サービス
 class ReliquaryAnalysisService {
@@ -16,12 +16,12 @@ class ReliquaryAnalysisService {
     ArtifactIconResolver iconResolver,
   ) {
     final results = <ReliquarySummary>[];
-    
+
     for (final avatar in data.avatarInfoList) {
       for (final equipment in avatar.equipList) {
         final reliquary = equipment.reliquary;
         final flat = equipment.flat;
-        
+
         // 聖遺物データが不完全な場合はスキップ
         if (reliquary == null || flat.reliquarySubstats == null) {
           continue;
@@ -39,11 +39,11 @@ class ReliquaryAnalysisService {
               ? extractIdentifier(appendIds[i])
               : substat.appendPropId;
           final initialList = <int>[];
-          
+
           if (i < appendIds.length) {
             initialList.add(extractSuffix(appendIds[i]));
           }
-          
+
           final entry = MutableSubstat(
             appendPropId: substat.appendPropId,
             statValue: substat.statValue,

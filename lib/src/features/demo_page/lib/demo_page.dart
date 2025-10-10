@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:artifact_diagnoser/models/remote/user_data.dart';
-import 'package:artifact_diagnoser/models/domain/reliquary_summary.dart';
-import 'package:artifact_diagnoser/services/stat_localizer.dart';
-import 'package:artifact_diagnoser/services/stat_append_resolver.dart';
-import 'package:artifact_diagnoser/services/artifact_icon_resolver.dart';
-import 'package:artifact_diagnoser/services/reliquary_analysis_service.dart';
-import 'package:artifact_diagnoser/components/reliquary_summary_view.dart';
+import 'package:artifact_diagnoser/src/models/remote/user_data.dart';
+import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
+import 'package:artifact_diagnoser/src/services/stat_localizer.dart';
+import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/src/services/artifact_icon_resolver.dart';
+import 'package:artifact_diagnoser/src/services/reliquary_analysis_service.dart';
+import 'package:artifact_diagnoser/src/components/reliquary_summary_view.dart';
 
 /// 聖遺物解析のメイン画面
 class DemoPage extends StatefulWidget {
@@ -30,14 +30,16 @@ class _DemoPageState extends State<DemoPage> {
 
     try {
       // ユーザーデータの読み込み
-      final jsonString = await rootBundle.loadString('assets/json/userdata.json');
+      final jsonString = await rootBundle.loadString(
+        'assets/json/userdata.json',
+      );
       final userData = UserData.fromJsonString(jsonString);
-      
+
       // 各種サービスの読み込み
       final localizer = await StatLocalizer.load();
       final appendResolver = await StatAppendResolver.load();
       final iconResolver = await ArtifactIconResolver.load();
-      
+
       // 聖遺物解析の実行
       final summaries = ReliquaryAnalysisService.buildReliquarySummaries(
         userData,
@@ -70,7 +72,7 @@ class _DemoPageState extends State<DemoPage> {
         _summaries = const [];
         _isLoading = false;
       });
-      
+
       debugPrint('ユーザーデータの読み込みに失敗しました: $error');
       debugPrint('$stackTrace');
       messenger?.showSnackBar(
@@ -103,7 +105,7 @@ class _DemoPageState extends State<DemoPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // 実行ボタン
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleExecute,
@@ -116,7 +118,7 @@ class _DemoPageState extends State<DemoPage> {
                         : const Text('実行'),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // 結果表示エリア
                   if (_isLoading)
                     const Center(child: CircularProgressIndicator()),

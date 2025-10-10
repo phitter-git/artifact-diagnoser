@@ -13,7 +13,7 @@ class ArtifactIconResolver {
     if (_cache != null) {
       return _cache!;
     }
-    
+
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final assetPaths = manifest
         .listAssets()
@@ -26,14 +26,14 @@ class ArtifactIconResolver {
   /// 指定されたアイコン名と装備種別に対応するパスを取得する
   String? pathFor(String? iconName, String? equipType) {
     final candidates = <String>[];
-    
+
     if (iconName != null && iconName.isNotEmpty) {
       candidates.add('assets/artifacts/$iconName.webp');
     }
     if (equipType != null && equipType.isNotEmpty) {
       candidates.add('assets/artifacts/$equipType.webp');
     }
-    
+
     for (final candidate in candidates) {
       if (_availableAssets.contains(candidate)) {
         return candidate;

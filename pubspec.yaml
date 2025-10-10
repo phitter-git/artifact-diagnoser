@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  demo_page:
+    path: lib/src/features/demo_page
 
 dev_dependencies:
   flutter_test:

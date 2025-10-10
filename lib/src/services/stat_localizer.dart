@@ -14,9 +14,10 @@ class StatLocalizer {
     if (_cache != null) {
       return _cache!;
     }
-    
+
     final content = await rootBundle.loadString('assets/json/stats_l18n.json');
-    final Map<String, dynamic> data = jsonDecode(content) as Map<String, dynamic>;
+    final Map<String, dynamic> data =
+        jsonDecode(content) as Map<String, dynamic>;
     final labels = data.map((key, value) => MapEntry(key, value.toString()));
     _cache = StatLocalizer(labels);
     return _cache!;

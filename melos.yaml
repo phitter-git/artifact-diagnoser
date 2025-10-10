@@ -1,0 +1,28 @@
+name: artifact_diagnoser_workspace
+
+packages:
+  - .
+  - lib/src/features/**
+
+scripts:
+  analyze:
+    exec: flutter analyze
+    description: Run Flutter analyze for all packages
+
+  format:
+    exec: dart format .
+    description: Format all Dart files
+
+  test:
+    exec: flutter test
+    description: Run tests for all packages
+    packageFilters:
+      dirExists: test
+
+  get:
+    exec: flutter pub get
+    description: Get dependencies for all packages
+
+command:
+  bootstrap:
+    runPubGetInParallel: false

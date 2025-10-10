@@ -14,11 +14,14 @@ class StatAppendResolver {
     if (_cache != null) {
       return _cache!;
     }
-    
-    final content = await rootBundle.loadString('assets/json/stats_append.json');
-    final Map<String, dynamic> raw = jsonDecode(content) as Map<String, dynamic>;
+
+    final content = await rootBundle.loadString(
+      'assets/json/stats_append.json',
+    );
+    final Map<String, dynamic> raw =
+        jsonDecode(content) as Map<String, dynamic>;
     final values = <String, Map<String, String>>{};
-    
+
     raw.forEach((key, dynamic value) {
       final map = <String, String>{};
       (value as Map).forEach((innerKey, innerValue) {
@@ -26,7 +29,7 @@ class StatAppendResolver {
       });
       values[key] = map;
     });
-    
+
     _cache = StatAppendResolver(values);
     return _cache!;
   }
@@ -37,7 +40,7 @@ class StatAppendResolver {
     if (table == null) {
       return suffixes.map((suffix) => suffix.toString()).toList();
     }
-    
+
     final result = <String>[];
     for (final suffix in suffixes) {
       final key = suffix.toString();
