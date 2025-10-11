@@ -24,11 +24,11 @@
 ## プロジェクト構造
 - `/lib`: アプリケーションのメインコード
   - `/src`: ソースコード
-    - `/models`: データモデル
-    - `/services`: API通信やデータ処理
-    - `/common`: 共通のユーティリティ関数
-    - `/components`: 再利用可能なUIコンポーネント
-    - `/features`: 各画面や機能の実装をフォルダ単位で管理。それぞれにpubspec.yamlが存在し、独立したパッケージとして扱う
+    - `/models`: データモデル（remote: API通信用、domain: アプリ内部用）
+    - `/services`: API通信やデータ処理などのビジネスロジック
+    - `/utils`: 共通のユーティリティ関数（フォーマット、JSON処理など）
+    - `/components`: 再利用可能なUIコンポーネント（状態を持たないWidget）
+    - `/screens`: 各画面の実装をフォルダ単位で管理。それぞれにpubspec.yamlが存在し、独立したパッケージとして扱う
     - `/i18n`: 多言語対応
 - `/assets`: アプリケーションの静的リソース（画像、フォントなど）
 - `/docs`: アプリケーションのドキュメント
@@ -42,7 +42,7 @@
 - KISS（Keep It Simple, Stupid）原則を守り、コードはシンプルで理解しやすくしてください。
 - Widgetを返す関数は実装せず、StatelessWidgetまたはStatefulWidgetを使用してください。
     - StatelessWidgetは状態を持たないUIコンポーネントに使用し、/componentsディレクトリに配置してください。
-    - StatefulWidgetは状態を持つUIコンポーネントに使用し、/featuresディレクトリに配置してください。
+    - StatefulWidgetは状態を持つ画面実装に使用し、/screensディレクトリに配置してください。
 
 ## テスト
 - `/test`ディレクトリが存在する場合、ユニットテストとウィジェットテストを積極的に追加してください。

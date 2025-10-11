@@ -4,7 +4,7 @@ import 'package:artifact_diagnoser/src/models/domain/mutable_substat.dart';
 import 'package:artifact_diagnoser/src/services/stat_localizer.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
 import 'package:artifact_diagnoser/src/services/artifact_icon_resolver.dart';
-import 'package:artifact_diagnoser/src/common/format_utils.dart';
+import 'package:artifact_diagnoser/src/utils/format_utils.dart';
 
 /// 聖遺物解析サービス
 class ReliquaryAnalysisService {

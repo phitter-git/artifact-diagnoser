@@ -20,31 +20,35 @@
 #### `lib/src/models`ディレクトリ
 プロジェクト内で使用するデータモデルを管理します。
 
-- `remote/` - REST API経由で取得するデータ型を定義
-- `domain/` - プロジェクト内で使用する形式へ変換した後のデータ型を定義
+- `remote/` - REST API経由で取得するデータ型を定義（1クラス1ファイル）
+- `domain/` - プロジェクト内で使用する形式へ変換した後のデータ型を定義（1クラス1ファイル）
+- `remote.dart` - remote/配下の全クラスをエクスポート
+- `domain.dart` - domain/配下の全クラスをエクスポート
 - `remote_to_domain.dart` - RemoteのデータをDomain用に変換する処理を実装
 
 #### `lib/src/components`ディレクトリ
 プロジェクト内で使用するコンポーネントを管理します。
 基本的には再利用可能な静的UIはStatelessWidgetとしてここに実装します。
 
-#### `lib/src/common`ディレクトリ
-プロジェクト内で使用する汎用処理を実装し管理します。
+#### `lib/src/utils`ディレクトリ
+プロジェクト内で使用する汎用ユーティリティ関数を実装し管理します。
+フォーマット処理、JSON処理などの共通処理が含まれます。
 
 #### `lib/src/services`ディレクトリ
 API通信やDB操作などのサービス層を実装し管理します。
+ビジネスロジックはここに実装します。
 
-#### `lib/src/features`ディレクトリ
-プロジェクト内で使用する各機能ごとのディレクトリを格納します。
-**各 feature は独立したパッケージとして構成され、それぞれに `pubspec.yaml` を持ちます。**
+#### `lib/src/screens`ディレクトリ
+プロジェクト内で使用する各画面ごとのディレクトリを格納します。
+**各 screen は独立したパッケージとして構成され、それぞれに `pubspec.yaml` を持ちます。**
 
 例：
-- `lib/src/features/demo_page/` - デモページ機能
+- `lib/src/screens/demo_page/` - デモページ画面
   - `lib/` - パッケージのソースコード
   - `pubspec.yaml` - パッケージ定義
   - `README.md` - パッケージドキュメント
 
-StatefulWidgetで実装されるUIは基本こちらに含まれます。
+StatefulWidgetで実装される画面UIは基本こちらに含まれます。
 
 #### `lib/src/i18n`ディレクトリ
 多言語対応のための翻訳ファイルを格納します。

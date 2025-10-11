@@ -44,7 +44,7 @@ packages:
   demo_page:
     dependency: "direct main"
     description:
-      path: "lib/src/features/demo_page"
+      path: "lib/src/screens/demo_page"
       relative: true
     source: path
     version: "0.1.0"

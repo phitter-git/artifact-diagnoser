@@ -2,7 +2,7 @@ name: artifact_diagnoser_workspace
 
 packages:
   - .
-  - lib/src/features/**
+  - lib/src/screens/**
 
 scripts:
   analyze:

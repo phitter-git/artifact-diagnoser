@@ -1,4 +1,4 @@
-import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
+import 'package:artifact_diagnoser/src/models/domain/substat_summary.dart';
 
 /// 内部で使用する可変サブステータス
 class MutableSubstat {

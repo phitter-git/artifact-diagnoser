@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
-import 'package:artifact_diagnoser/src/common/format_utils.dart';
+import 'package:artifact_diagnoser/src/utils/format_utils.dart';
 
 /// 聖遺物の解析結果を表示するコンポーネント
 class ReliquarySummaryView extends StatelessWidget {
