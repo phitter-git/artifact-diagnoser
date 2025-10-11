@@ -37,6 +37,7 @@ class ReliquaryAnalysisService {
 
         // 各サブステータスの強化レベルを追跡
         final enhancementLevelsMap = <String, List<int>>{};
+        final rollValuesMap = <String, List<double>>{};
 
         // 初期サブステータスの処理
         for (var i = 0; i < substats.length; i++) {
@@ -51,7 +52,7 @@ class ReliquaryAnalysisService {
           }
 
           final entry = MutableSubstat(
-            appendPropId: substat.appendPropId,
+            propId: substat.appendPropId,
             statValue: substat.statValue,
             identifier: identifier,
             statAppendList: initialList,
@@ -63,55 +64,54 @@ class ReliquaryAnalysisService {
           if (i < initialSubstatCount) {
             // 初期サブステータス（+0で付与）
             enhancementLevelsMap[identifier] = [0];
+            // 初期値をrollValuesに追加
+            final tierSuffix = extractSuffix(appendIds[i]);
+            final initialValue = _getRollValue(
+              appendResolver,
+              substat.appendPropId,
+              tierSuffix,
+            );
+            rollValuesMap[identifier] = [initialValue];
           } else {
             // +4で追加されたサブステータス
             enhancementLevelsMap[identifier] = [4];
+            final tierSuffix = extractSuffix(appendIds[i]);
+            final initialValue = _getRollValue(
+              appendResolver,
+              substat.appendPropId,
+              tierSuffix,
+            );
+            rollValuesMap[identifier] = [initialValue];
           }
         }
 
         // 追加強化の処理
-        // 初期3個の場合 (appendPropIdList長=8):
-        //   [0][1][2] = 初期3個 (+0時点)
-        //   [3] = +4で追加される4つ目のサブステータス (追加のみ、強化なし)
-        //   [4] = +8での強化
-        //   [5] = +12での強化
-        //   [6] = +16での強化
-        //   [7] = +20での強化
-        //
-        // 初期4個の場合 (appendPropIdList長=9):
-        //   [0][1][2][3] = 初期4個 (+0時点)
-        //   [4] = +4での強化
-        //   [5] = +8での強化
-        //   [6] = +12での強化
-        //   [7] = +16での強化
-        //   [8] = +20での強化
-
         if (initialSubstatCount == 3) {
-          // 初期3個の場合
-          // インデックス3は+4で追加されるサブステータス（すでに処理済み）
-          // インデックス4以降が+8, +12, +16, +20での強化
-          final enhancementStages = [8, 12, 16, 20]; // +4での強化はなし
+          // 初期3個の場合: インデックス3は+4で追加、4-7は+8/+12/+16/+20
+          final enhancementStages = [8, 12, 16, 20];
           for (var i = substats.length; i < appendIds.length; i++) {
             final identifier = extractIdentifier(appendIds[i]);
             final suffix = extractSuffix(appendIds[i]);
             final entry = map[identifier];
             entry?.statAppendList.add(suffix);
 
-            // i=3: 4つ目のサブステータス（+4で追加）← すでにenhancementLevels[4]設定済み
-            // i=4: +8での強化
-            // i=5: +12での強化
-            // i=6: +16での強化
-            // i=7: +20での強化
             if (i >= 4) {
-              final stageIndex = i - 4; // 4→0(+8), 5→1(+12), 6→2(+16), 7→3(+20)
+              final stageIndex = i - 4;
               if (stageIndex < enhancementStages.length) {
                 final enhancementLevel = enhancementStages[stageIndex];
                 enhancementLevelsMap[identifier]?.add(enhancementLevel);
+
+                final rollValue = _getRollValue(
+                  appendResolver,
+                  entry?.propId ?? '',
+                  suffix,
+                );
+                rollValuesMap[identifier]?.add(rollValue);
               }
             }
           }
         } else {
-          // 初期4個の場合
+          // 初期4個の場合: インデックス4-8は+4/+8/+12/+16/+20
           final enhancementStages = [4, 8, 12, 16, 20];
           for (var i = substats.length; i < appendIds.length; i++) {
             final identifier = extractIdentifier(appendIds[i]);
@@ -119,15 +119,17 @@ class ReliquaryAnalysisService {
             final entry = map[identifier];
             entry?.statAppendList.add(suffix);
 
-            // i=4: +4での強化
-            // i=5: +8での強化
-            // i=6: +12での強化
-            // i=7: +16での強化
-            // i=8: +20での強化
-            final stageIndex = i - substats.length; // 4→0(+4), 5→1(+8), ...
+            final stageIndex = i - substats.length;
             if (stageIndex < enhancementStages.length) {
               final enhancementLevel = enhancementStages[stageIndex];
               enhancementLevelsMap[identifier]?.add(enhancementLevel);
+
+              final rollValue = _getRollValue(
+                appendResolver,
+                entry?.propId ?? '',
+                suffix,
+              );
+              rollValuesMap[identifier]?.add(rollValue);
             }
           }
         }
@@ -146,17 +148,26 @@ class ReliquaryAnalysisService {
             mainStatValue: flat.reliquaryMainstat?.statValue,
             iconAssetPath: iconResolver.pathFor(flat.icon, flat.equipType),
             level: equipment.reliquary?.level ?? 1,
+            initialSubstatCount: initialSubstatCount,
             substats: entries.map((entry) {
-              final appendValues = appendResolver.valuesFor(
-                entry.appendPropId,
-                entry.statAppendList,
-              );
               final enhancementLevels =
                   enhancementLevelsMap[entry.identifier] ?? [];
+              final rollValues = rollValuesMap[entry.identifier] ?? [];
+
+              // ロール値の統計を計算
+              final rollStats = _calculateRollStats(
+                appendResolver,
+                entry.propId,
+              );
+
               return entry.toSubstatSummary(
-                displayName: localizer.labelFor(entry.appendPropId),
-                appendValueStrings: appendValues,
+                label: localizer.labelFor(entry.propId),
+                avgRollValue: rollStats.avgRollValue,
+                minRollValue: rollStats.minRollValue,
+                maxRollValue: rollStats.maxRollValue,
+                totalUpgrades: entry.statAppendList.length,
                 enhancementLevels: enhancementLevels,
+                rollValues: rollValues,
               );
             }).toList(),
           ),
@@ -165,4 +176,48 @@ class ReliquaryAnalysisService {
     }
     return results;
   }
+
+  /// ロール値を取得
+  static double _getRollValue(
+    StatAppendResolver resolver,
+    String propId,
+    int tierSuffix,
+  ) {
+    final values = resolver.valuesFor(propId, [tierSuffix]);
+    if (values.isEmpty) return 0.0;
+
+    final valueStr = values[0].replaceAll('%', '').replaceAll('+', '');
+    return double.tryParse(valueStr) ?? 0.0;
+  }
+
+  /// ロール値の統計情報を計算
+  static _RollStats _calculateRollStats(
+    StatAppendResolver resolver,
+    String propId,
+  ) {
+    // ティア1-4の値を取得
+    final tier1 = _getRollValue(resolver, propId, 1);
+    final tier2 = _getRollValue(resolver, propId, 2);
+    final tier3 = _getRollValue(resolver, propId, 3);
+    final tier4 = _getRollValue(resolver, propId, 4);
+
+    return _RollStats(
+      minRollValue: tier1,
+      avgRollValue: (tier1 + tier2 + tier3 + tier4) / 4,
+      maxRollValue: tier4,
+    );
+  }
+}
+
+/// ロール値の統計情報
+class _RollStats {
+  const _RollStats({
+    required this.minRollValue,
+    required this.avgRollValue,
+    required this.maxRollValue,
+  });
+
+  final double minRollValue;
+  final double avgRollValue;
+  final double maxRollValue;
 }

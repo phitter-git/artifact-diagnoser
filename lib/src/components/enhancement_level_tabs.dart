@@ -48,6 +48,7 @@ class EnhancementLevelTabs extends StatelessWidget {
         onSelectionChanged: (Set<int> newSelection) {
           onLevelChanged(newSelection.first);
         },
+        showSelectedIcon: false,
         style: ButtonStyle(
           textStyle: WidgetStateProperty.all(theme.textTheme.labelLarge),
         ),

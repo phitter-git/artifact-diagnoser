@@ -52,7 +52,7 @@ class SubstatDetailView extends StatelessWidget {
       'FIGHT_PROP_PHYSICAL_ADD_HURT',
       'FIGHT_PROP_HEAL_ADD',
     ];
-    return percentageStats.contains(substat.appendPropId);
+    return percentageStats.contains(substat.propId);
   }
 
   /// 増加値をフォーマット
@@ -111,7 +111,7 @@ class SubstatDetailView extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              substat.displayName,
+              substat.label,
               style: theme.textTheme.bodyMedium,
               overflow: TextOverflow.ellipsis,
             ),

@@ -23,13 +23,10 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
     super.initState();
     // 初期値として聖遺物の現在レベルを設定 (level: 1-21 → 表示: +0~+20)
     // 表示用レベルに変換: (level - 1)
-    final displayLevel = widget.summary.level - 1;
+    final displayLevel = widget.summary.displayLevel;
 
     // 初期サブステータス3個の場合は+4から開始
-    final hasInitialSubstat3 = widget.summary.substats.any(
-      (s) => s.enhancementLevels.isNotEmpty && s.enhancementLevels[0] == 4,
-    );
-    final minLevel = hasInitialSubstat3 ? 4 : 0;
+    final minLevel = widget.summary.initialLevel;
 
     _selectedLevel = displayLevel < minLevel ? minLevel : displayLevel;
   }
@@ -37,15 +34,10 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
   @override
   Widget build(BuildContext context) {
     // maxLevel: API値 (1-21) を表示用 (+0~+20) に変換
-    final maxLevel = widget.summary.level - 1;
-
-    // 初期サブステータス数を判定
-    final hasInitialSubstat3 = widget.summary.substats.any(
-      (s) => s.enhancementLevels.isNotEmpty && s.enhancementLevels[0] == 4,
-    );
+    final maxLevel = widget.summary.displayLevel;
 
     // 初期サブステータス3個の場合、最小レベルは+4
-    final minLevel = hasInitialSubstat3 ? 4 : 0;
+    final minLevel = widget.summary.initialLevel;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -101,18 +93,11 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
             const SizedBox(height: 8),
 
             // 各サブステータスの詳細
-            // 初期サブステータスの判定: appendValueStringsの最後の要素が強化回数を示す
-            // 最も強化回数が多いサブステータスの回数 = 初期サブステータス数を決定
             for (final substat in widget.summary.substats)
               SubstatDetailView(
                 substat: substat,
                 currentLevel: _selectedLevel,
-                // appendValueStringsが最大長のものが初期サブステータス
-                isInitial:
-                    substat.appendValueStrings.length ==
-                    widget.summary.substats
-                        .map((s) => s.appendValueStrings.length)
-                        .reduce((a, b) => a > b ? a : b),
+                isInitial: substat.isInitial,
               ),
           ],
         ),
