@@ -24,10 +24,14 @@ String formatNumber(num? value) {
     return '-';
   }
   final doubleValue = value.toDouble();
+
+  // 整数の場合はそのまま
   if (doubleValue == doubleValue.roundToDouble()) {
     return doubleValue.toInt().toString();
   }
-  return doubleValue.toString();
+
+  // 小数点以下1桁に丸める
+  return doubleValue.toStringAsFixed(1);
 }
 
 /// 付加値リストをフォーマットするユーティリティ関数

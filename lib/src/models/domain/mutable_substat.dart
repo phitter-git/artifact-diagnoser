@@ -18,6 +18,7 @@ class MutableSubstat {
   SubstatSummary toSubstatSummary({
     required String displayName,
     required List<String> appendValueStrings,
+    required List<int> enhancementLevels,
   }) {
     return SubstatSummary(
       appendPropId: appendPropId,
@@ -26,6 +27,7 @@ class MutableSubstat {
       identifier: identifier,
       statAppendList: List<int>.from(statAppendList),
       appendValueStrings: appendValueStrings,
+      enhancementLevels: enhancementLevels,
     );
   }
 }

@@ -12,6 +12,7 @@ class ReliquarySummary {
     required this.mainStatValue,
     required this.substats,
     required this.iconAssetPath,
+    required this.level,
   });
 
   /// アバターID
@@ -40,4 +41,7 @@ class ReliquarySummary {
 
   /// アイコンアセットパス
   final String? iconAssetPath;
+
+  /// 聖遺物の強化レベル (1-21, 実際の表示は+0~+20)
+  final int level;
 }
