@@ -67,4 +67,49 @@ class ReliquarySummary {
     final remaining = (20 - displayLevel) ~/ 4;
     return remaining > 0 ? remaining : 0;
   }
+
+  /// スコアランクを計算（SS/S/A/B/C）
+  ///
+  /// サブステータスのロール品質平均に基づいて評価
+  String get scoreRank {
+    if (substats.isEmpty) return 'C';
+
+    // 各サブステータスのロール品質平均を取得
+    final qualities = substats.map((s) => s.averageRollQuality).toList();
+
+    // 全体の平均品質を計算
+    final avgQuality = qualities.reduce((a, b) => a + b) / qualities.length;
+
+    // ランク判定
+    // 1.20以上: SS（極めて高品質）
+    // 1.10以上: S（最大値近い）
+    // 1.00以上: A（平均以上）
+    // 0.90以上: B（平均）
+    // 0.90未満: C（平均以下）
+    if (avgQuality >= 1.20) return 'SS';
+    if (avgQuality >= 1.10) return 'S';
+    if (avgQuality >= 1.00) return 'A';
+    if (avgQuality >= 0.90) return 'B';
+    return 'C';
+  }
+
+  /// 初期値の品質を計算（高/中高/中低/低）
+  String get initialQuality {
+    if (initialSubstats.isEmpty) return '低';
+
+    // 初期サブステータスのロール品質平均を計算
+    final qualities = initialSubstats.map((s) {
+      // 初回のロール品質を取得
+      if (s.rollQualities.isEmpty) return 0.0;
+      return s.rollQualities.first;
+    }).toList();
+
+    final avgQuality = qualities.reduce((a, b) => a + b) / qualities.length;
+
+    // 品質判定
+    if (avgQuality >= 0.85) return '高';
+    if (avgQuality >= 0.70) return '中高';
+    if (avgQuality >= 0.55) return '中低';
+    return '低';
+  }
 }

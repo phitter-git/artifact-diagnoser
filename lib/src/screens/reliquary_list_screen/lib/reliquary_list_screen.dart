@@ -6,7 +6,8 @@ import 'package:artifact_diagnoser/src/services/stat_localizer.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
 import 'package:artifact_diagnoser/src/services/artifact_icon_resolver.dart';
 import 'package:artifact_diagnoser/src/services/reliquary_analysis_service.dart';
-import 'package:artifact_diagnoser/src/components/reliquary_summary_view.dart';
+import 'package:artifact_diagnoser/src/components/reliquary_card_view.dart';
+import 'package:artifact_diagnoser/src/screens/reliquary_detail_screen/lib/reliquary_detail_screen.dart';
 
 /// 聖遺物一覧画面
 ///
@@ -21,6 +22,7 @@ class ReliquaryListScreen extends StatefulWidget {
 class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
   List<ReliquarySummary> _summaries = const [];
   bool _isLoading = false;
+  bool _showInitialValues = false; // 初期値表示フラグ
   String? _uid;
 
   @override
@@ -93,10 +95,33 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 画面幅に応じて列数を計算（カード幅約350px想定）
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = (screenWidth / 350).floor().clamp(1, 5);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('聖遺物一覧'),
         actions: [
+          // 初期値表示トグル（文字付き）
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('初期値を表示', style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(width: 8),
+                Switch(
+                  value: _showInitialValues,
+                  onChanged: (value) {
+                    setState(() {
+                      _showInitialValues = value;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
@@ -127,14 +152,28 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                 ],
               ),
             )
-          : ListView.builder(
+          : GridView.builder(
               padding: const EdgeInsets.all(16),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: 1.2, // 0.75から1.1に変更（横:縦 = 11:10でより正方形に近く）
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
               itemCount: _summaries.length,
               itemBuilder: (context, index) {
                 final summary = _summaries[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: ReliquarySummaryView(summary: summary),
+                return ReliquaryCardView(
+                  summary: summary,
+                  showInitialValues: _showInitialValues,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ReliquaryDetailScreen(summary: summary),
+                      ),
+                    );
+                  },
                 );
               },
             ),
