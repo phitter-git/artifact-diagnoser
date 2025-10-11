@@ -3,7 +3,7 @@ import 'package:artifact_diagnoser/src/models/remote/property_value.dart';
 import 'package:artifact_diagnoser/src/models/remote/equipment.dart';
 import 'package:artifact_diagnoser/src/models/remote/fetter_info.dart';
 
-/// アバター情報
+/// アバター（キャラクター）情報
 class AvatarInfo {
   const AvatarInfo({
     required this.avatarId,
@@ -15,12 +15,25 @@ class AvatarInfo {
     this.costumeId,
   });
 
+  /// アバターID（キャラクター識別子）
   final int avatarId;
+
+  /// プロパティマップ（レベル、経験値など）
   final Map<String, PropertyValue> propMap;
+
+  /// 天賦IDリスト（解放済みの天賦）
   final List<int> talentIdList;
+
+  /// 戦闘プロパティマップ（攻撃力、会心率など）
   final Map<String, double> fightPropMap;
+
+  /// 装備リスト（聖遺物、武器）
   final List<Equipment> equipList;
+
+  /// 好感度情報
   final FetterInfo? fetterInfo;
+
+  /// 衣装ID（着用中の衣装）
   final int? costumeId;
 
   factory AvatarInfo.fromJson(Map<String, dynamic> json) {

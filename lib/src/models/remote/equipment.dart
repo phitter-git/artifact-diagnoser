@@ -2,7 +2,7 @@ import 'package:artifact_diagnoser/src/models/remote/reliquary_info.dart';
 import 'package:artifact_diagnoser/src/models/remote/weapon_info.dart';
 import 'package:artifact_diagnoser/src/models/remote/equipment_flat.dart';
 
-/// 装備情報
+/// 装備情報（聖遺物または武器）
 class Equipment {
   const Equipment({
     required this.itemId,
@@ -11,9 +11,16 @@ class Equipment {
     required this.flat,
   });
 
+  /// アイテムID（装備の識別子）
   final int itemId;
+
+  /// 聖遺物情報（聖遺物の場合のみ）
   final ReliquaryInfo? reliquary;
+
+  /// 武器情報（武器の場合のみ）
   final WeaponInfo? weapon;
+
+  /// 装備の詳細情報（名前、アイコン、ステータスなど）
   final EquipmentFlat flat;
 
   factory Equipment.fromJson(Map<String, dynamic> json) {

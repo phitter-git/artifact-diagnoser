@@ -3,7 +3,7 @@ import 'package:artifact_diagnoser/src/utils/json_utils.dart';
 import 'package:artifact_diagnoser/src/models/remote/player_info.dart';
 import 'package:artifact_diagnoser/src/models/remote/avatar_info.dart';
 
-/// ユーザーデータ
+/// ユーザーデータ（APIレスポンスのルート）
 class UserData {
   const UserData({
     required this.playerInfo,
@@ -12,9 +12,16 @@ class UserData {
     required this.uid,
   });
 
+  /// プレイヤー情報（ニックネーム、ランクなど）
   final PlayerInfo playerInfo;
+
+  /// 所持キャラクター一覧（装備情報を含む）
   final List<AvatarInfo> avatarInfoList;
+
+  /// データの有効期限（秒）
   final int ttl;
+
+  /// ユーザーID
   final String uid;
 
   factory UserData.fromJson(Map<String, dynamic> json) {

@@ -27,25 +27,64 @@ class PlayerInfo {
     required this.stygianId,
   });
 
+  /// プレイヤー名
   final String nickname;
+
+  /// 冒険ランク
   final int level;
+
+  /// 一言コメント
   final String signature;
+
+  /// 世界ランク
   final int worldLevel;
+
+  /// 名刺ID
   final int nameCardId;
+
+  /// 達成済み実績数
   final int finishAchievementNum;
+
+  /// 深境螺旋：到達階層
   final int towerFloorIndex;
+
+  /// 深境螺旋：到達間
   final int towerLevelIndex;
+
+  /// 展示中のキャラクター情報
   final List<ShowAvatarInfo> showAvatarInfoList;
+
+  /// 展示中の名刺IDリスト
   final List<int> showNameCardIdList;
+
+  /// プロフィール画像
   final ProfilePicture profilePicture;
+
+  /// 幻想シアター：幕
   final int theaterActIndex;
+
+  /// 幻想シアター：難易度
   final int theaterModeIndex;
+
+  /// 幻想シアター：星数
   final int theaterStarIndex;
+
+  /// キャラクター天賦表示フラグ
   final bool isShowAvatarTalent;
+
+  /// 好感度レベルが最大のキャラクター数
   final int fetterCount;
+
+  /// 深境螺旋：獲得星数
   final int towerStarIndex;
+
+  /// ステュギアの夜：階層
   final int stygianIndex;
+
+  /// ステュギアの夜：クリア秒数
   final int stygianSeconds;
+
+  /// ステュギアの夜：ID
   final int stygianId;
 
   factory PlayerInfo.fromJson(Map<String, dynamic> json) {
