@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:demo_page/demo_page.dart';
+import 'package:home_screen/home_screen.dart';
+import 'package:reliquary_list_screen/reliquary_list_screen.dart';
 
 /// アプリケーションのエントリーポイント
 void main() {
@@ -13,8 +14,17 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(useMaterial3: true, fontFamily: 'GISDK'),
-      home: const DemoPage(),
+      title: '聖遺物診断器',
+      theme: ThemeData(
+        useMaterial3: true,
+        fontFamily: 'GISDK',
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomeScreen(),
+        '/reliquary-list': (context) => const ReliquaryListScreen(),
+      },
     );
   }
 }
