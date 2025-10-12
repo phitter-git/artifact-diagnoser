@@ -97,19 +97,23 @@ class ReliquarySummary {
   String get initialQuality {
     if (initialSubstats.isEmpty) return '低';
 
-    // 初期サブステータスのロール品質平均を計算
-    final qualities = initialSubstats.map((s) {
-      // 初回のロール品質を取得
-      if (s.rollQualities.isEmpty) return 0.0;
-      return s.rollQualities.first;
+    // 初期サブステータスのTier平均を計算
+    final tiers = initialSubstats.map((s) {
+      // 初回のTierを取得
+      if (s.rollTiers.isEmpty) return 1;
+      return s.rollTiers.first;
     }).toList();
 
-    final avgQuality = qualities.reduce((a, b) => a + b) / qualities.length;
+    final avgTier = tiers.reduce((a, b) => a + b) / tiers.length;
 
-    // 品質判定
-    if (avgQuality >= 0.85) return '高';
-    if (avgQuality >= 0.70) return '中高';
-    if (avgQuality >= 0.55) return '中低';
+    // 品質判定（Tier平均: 1.0~4.0）
+    // 3.5以上: 高（ほぼTier 4）
+    // 2.5以上: 中高（Tier 3が中心）
+    // 1.5以上: 中低（Tier 2が中心）
+    // 1.5未満: 低（Tier 1が多い）
+    if (avgTier >= 3.5) return '高';
+    if (avgTier >= 2.5) return '中高';
+    if (avgTier >= 1.5) return '中低';
     return '低';
   }
 }

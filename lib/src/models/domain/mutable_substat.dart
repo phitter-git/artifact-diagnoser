@@ -47,6 +47,7 @@ class MutableSubstat {
       totalUpgrades: totalUpgrades,
       enhancementLevels: enhancementLevels,
       rollValues: rollValues,
+      rollTiers: statAppendList, // Tier情報をそのまま渡す
     );
   }
 }

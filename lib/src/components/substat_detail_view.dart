@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/models/domain/substat_summary.dart';
 import 'package:artifact_diagnoser/src/utils/format_utils.dart';
+import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
 
 /// サブステータスの詳細を表示するコンポーネント
 ///
@@ -11,6 +12,7 @@ class SubstatDetailView extends StatelessWidget {
     required this.substat,
     required this.currentLevel,
     required this.isInitial,
+    required this.statAppendResolver,
   });
 
   /// サブステータスの情報
@@ -21,6 +23,9 @@ class SubstatDetailView extends StatelessWidget {
 
   /// 初期サブステータスかどうか
   final bool isInitial;
+
+  /// ステータス付加値リゾルバー
+  final StatAppendResolver statAppendResolver;
 
   /// 指定された強化レベルでの数値を取得
   double _getValueAtLevel(int level) {
@@ -64,15 +69,39 @@ class SubstatDetailView extends StatelessWidget {
   }
 
   /// 抽選値のティアを判定（0=最小, 1=中低, 2=中高, 3=最大）
-  int _getRollTier(double increment) {
-    // TODO: stats_append.jsonから正確な抽選値を取得する
-    // 暫定的な判定ロジック
-    final incrementPercentage = (increment / substat.statValue) * 100;
+  /// stats_append.jsonから正確な抽選値を取得して判定
+  int? _getRollTier(double increment) {
+    // stats_append.jsonから全ティアの値を取得
+    final tierValues = statAppendResolver.valuesFor(substat.propId, [
+      1,
+      2,
+      3,
+      4,
+    ]);
 
-    if (incrementPercentage >= 0.85) return 3; // 最大値
-    if (incrementPercentage >= 0.70) return 2; // 中高値
-    if (incrementPercentage >= 0.55) return 1; // 中低値
-    return 0; // 最小値
+    if (tierValues.length != 4) return null;
+
+    // 増加値を文字列に変換（パーセント表示の場合は小数点1桁）
+    final incrementStr = _isPercentageStat()
+        ? increment.toStringAsFixed(1)
+        : formatNumber(increment);
+
+    // 各ティアと比較して一致するものを探す
+    for (int i = 0; i < tierValues.length; i++) {
+      if (tierValues[i] == incrementStr) {
+        return i; // tier 1-4 → 0-3に変換（配列インデックス）
+      }
+    }
+
+    // 完全一致しない場合は、最も近いティアを推定
+    try {
+      final numericValues = tierValues.map((v) => double.parse(v)).toList();
+      final diff = numericValues.map((v) => (v - increment).abs()).toList();
+      final minDiffIndex = diff.indexOf(diff.reduce((a, b) => a < b ? a : b));
+      return minDiffIndex;
+    } catch (e) {
+      return null;
+    }
   }
 
   /// 抽選値ティアに応じた色を取得
@@ -135,14 +164,18 @@ class SubstatDetailView extends StatelessWidget {
               margin: const EdgeInsets.only(left: 8),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: _getRollTierColor(
-                  _getRollTier(increment),
-                ).withOpacity(0.15),
+                color: _getRollTier(increment) != null
+                    ? _getRollTierColor(
+                        _getRollTier(increment)!,
+                      ).withValues(alpha: 0.15)
+                    : Colors.grey.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: _getRollTierColor(
-                    _getRollTier(increment),
-                  ).withOpacity(0.5),
+                  color: _getRollTier(increment) != null
+                      ? _getRollTierColor(
+                          _getRollTier(increment)!,
+                        ).withValues(alpha: 0.5)
+                      : Colors.grey.withValues(alpha: 0.5),
                   width: 1,
                 ),
               ),
@@ -152,13 +185,17 @@ class SubstatDetailView extends StatelessWidget {
                   Icon(
                     Icons.arrow_upward,
                     size: 10,
-                    color: _getRollTierColor(_getRollTier(increment)),
+                    color: _getRollTier(increment) != null
+                        ? _getRollTierColor(_getRollTier(increment)!)
+                        : Colors.grey,
                   ),
                   const SizedBox(width: 2),
                   Text(
                     '+${_formatIncrement(increment)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: _getRollTierColor(_getRollTier(increment)),
+                      color: _getRollTier(increment) != null
+                          ? _getRollTierColor(_getRollTier(increment)!)
+                          : Colors.grey,
                       fontWeight: FontWeight.w600,
                       fontSize: 10,
                     ),

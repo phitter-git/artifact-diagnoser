@@ -10,6 +10,7 @@ class SubstatSummary {
     required this.totalUpgrades,
     required this.enhancementLevels,
     required this.rollValues,
+    required this.rollTiers,
   });
 
   /// プロパティID
@@ -39,6 +40,10 @@ class SubstatSummary {
 
   /// 各強化時の実際のロール値（appendValueStringsから算出）
   final List<double> rollValues;
+
+  /// 各強化時のTier（1-4の整数値）
+  /// 1=最小値、2=中低値、3=中高値、4=最大値
+  final List<int> rollTiers;
 
   /// 初期サブステータスかどうか
   bool get isInitial =>
@@ -93,23 +98,15 @@ class SubstatSummary {
     return statValue / (avgRollValue * totalUpgrades);
   }
 
-  /// 各強化での最大ロール値に対する割合
-  List<double> get rollQualities {
-    return rollValues.map((roll) {
-      if (maxRollValue == 0) return 1.0;
-      return roll / maxRollValue;
-    }).toList();
-  }
-
   /// 最高ロール品質（最も高い品質のロール）
   double get maxRollQuality {
-    if (rollQualities.isEmpty) return 0.0;
-    return rollQualities.reduce((a, b) => a > b ? a : b);
+    if (rollTiers.isEmpty) return 0.0;
+    return rollTiers.reduce((a, b) => a > b ? a : b) / 4.0;
   }
 
   /// 最低ロール品質（最も低い品質のロール）
   double get minRollQuality {
-    if (rollQualities.isEmpty) return 0.0;
-    return rollQualities.reduce((a, b) => a < b ? a : b);
+    if (rollTiers.isEmpty) return 0.0;
+    return rollTiers.reduce((a, b) => a < b ? a : b) / 4.0;
   }
 }

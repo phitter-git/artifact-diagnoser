@@ -10,6 +10,7 @@ class ReliquaryCardView extends StatelessWidget {
     super.key,
     required this.summary,
     required this.showInitialValues,
+    this.selectedStats = const {},
     this.onTap,
   });
 
@@ -18,6 +19,9 @@ class ReliquaryCardView extends StatelessWidget {
 
   /// 初期値を表示するか（初期3なら+4、初期4なら+0）
   final bool showInitialValues;
+
+  /// スコア計算対象として選択されているステータス（ラベル名 -> 選択状態）
+  final Map<String, bool> selectedStats;
 
   /// カードタップ時のコールバック
   final VoidCallback? onTap;
@@ -52,9 +56,9 @@ class ReliquaryCardView extends StatelessWidget {
     final value = substat.getValueAtLevel(level);
 
     if (_isPercentageStat(substat.propId)) {
-      return '+${value.toStringAsFixed(1)}%';
+      return '${value.toStringAsFixed(1)}%';
     }
-    return '+${formatNumber(value)}';
+    return formatNumber(value);
   }
 
   /// スコアランクの色を取得（scoring_logic.mdに基づく）
@@ -73,62 +77,54 @@ class ReliquaryCardView extends StatelessWidget {
     }
   }
 
-  /// 初期品質のアイコンを取得（全体評価用）
-  Widget _getInitialQualityIcon(String quality) {
-    IconData icon;
+  /// サブステータス個別のロール品質ランクを取得（Tierベース）
+  /// 初期値表示時に各サブステータスのTierに基づいてランクを表示
+  /// Tier: 1=C、2=B、3=A、4=S
+  Widget _getSubstatRollQualityRank(int tier) {
+    String rank;
     Color color;
 
-    switch (quality) {
-      case '高':
-        icon = Icons.arrow_upward;
-        color = Colors.green;
+    switch (tier) {
+      case 4:
+        // 最大値
+        rank = 'S';
+        color = const Color(0xFFFF8C00); // オレンジゴールド（背景色と区別しやすい）
         break;
-      case '中高':
-        icon = Icons.trending_up;
-        color = Colors.lightGreen;
+      case 3:
+        // 中高値
+        rank = 'A';
+        color = const Color(0xFFA256E1); // 紫色
         break;
-      case '中低':
-        icon = Icons.trending_down;
-        color = Colors.orange;
+      case 2:
+        // 中低値
+        rank = 'B';
+        color = const Color(0xFF4A90E2); // 青色
         break;
-      default: // '低'
-        icon = Icons.arrow_downward;
-        color = Colors.red;
+      case 1:
+      default:
+        // 最小値
+        rank = 'C';
+        color = const Color(0xFF73C990); // 緑色
+        break;
     }
 
-    return Icon(icon, size: 24, color: color);
-  }
-
-  /// サブステータス個別のロール品質アイコンを取得
-  /// 初期値表示時に各サブステータスのロール品質を表示
-  Widget _getSubstatRollQualityIcon(double rollQuality) {
-    IconData icon;
-    Color color;
-
-    // ロール品質の閾値（maxRollValueに対する割合）
-    if (rollQuality >= 0.95) {
-      // 最高値（95%以上）
-      icon = Icons.star;
-      color = Colors.amber;
-    } else if (rollQuality >= 0.80) {
-      // 高（80%以上）
-      icon = Icons.arrow_upward;
-      color = Colors.green;
-    } else if (rollQuality >= 0.65) {
-      // 中の上（65%以上）
-      icon = Icons.trending_up;
-      color = Colors.lightGreen;
-    } else if (rollQuality >= 0.50) {
-      // 中の下（50%以上）
-      icon = Icons.trending_down;
-      color = Colors.orange;
-    } else {
-      // 低（50%未満）
-      icon = Icons.arrow_downward;
-      color = Colors.red;
-    }
-
-    return Icon(icon, size: 18, color: color);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Text(
+        rank,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: color,
+          height: 1.0,
+        ),
+      ),
+    );
   }
 
   /// メインステータスの表示値を取得（%付き）
@@ -143,15 +139,111 @@ class ReliquaryCardView extends StatelessWidget {
     return formatNumber(value);
   }
 
+  /// スコアを計算する
+  /// - 会心率は×2
+  /// - 元素熟知は÷4
+  /// - その他は等倍
+  double _calculateScore() {
+    double score = 0.0;
+    final level = showInitialValues
+        ? summary.initialLevel
+        : summary.displayLevel;
+
+    for (final substat in summary.substats) {
+      // このサブステータスが選択されているかチェック
+      final isSelected = selectedStats[substat.label] ?? false;
+      if (!isSelected) continue;
+
+      final value = substat.getValueAtLevel(level);
+
+      // ラベル名に応じて係数を適用
+      if (substat.label == '会心率') {
+        score += value * 2;
+      } else if (substat.label == '元素熟知') {
+        score += value / 4;
+      } else {
+        score += value;
+      }
+    }
+
+    return score;
+  }
+
+  /// スコアに基づいてランクを計算（部位別基準）
+  ///
+  /// 基本基準（花・羽）:
+  /// - SS: 50以上
+  /// - S: 45以上
+  /// - A: 40以上
+  /// - B: 30以上
+  /// - C: 30未満
+  ///
+  /// 杯・時計（砂）: -5.0寛容
+  /// - SS: 45以上
+  /// - S: 40以上
+  /// - A: 35以上
+  /// - B: 25以上
+  /// - C: 25未満
+  ///
+  /// 冠: -10.0寛容
+  /// - SS: 40以上
+  /// - S: 35以上
+  /// - A: 30以上
+  /// - B: 20以上
+  /// - C: 20未満
+  String _getScoreBasedRank() {
+    // 少なくとも1つのステータスが選択されている場合のみスコアベースのランクを計算
+    if (selectedStats.values.any((selected) => selected)) {
+      final score = _calculateScore();
+
+      // 部位に応じて基準値を調整
+      double ssThreshold, sThreshold, aThreshold, bThreshold;
+
+      switch (summary.equipType) {
+        case 'EQUIP_RING': // 杯: -5.0寛容
+        case 'EQUIP_SHOES': // 時計（砂）: -5.0寛容
+          ssThreshold = 45.0;
+          sThreshold = 40.0;
+          aThreshold = 35.0;
+          bThreshold = 25.0;
+          break;
+        case 'EQUIP_DRESS': // 冠: -10.0寛容
+          ssThreshold = 40.0;
+          sThreshold = 35.0;
+          aThreshold = 30.0;
+          bThreshold = 20.0;
+          break;
+        case 'EQUIP_BRACER': // 花
+        case 'EQUIP_NECKLACE': // 羽
+        default: // 基本基準
+          ssThreshold = 50.0;
+          sThreshold = 45.0;
+          aThreshold = 40.0;
+          bThreshold = 30.0;
+          break;
+      }
+
+      if (score >= ssThreshold) return 'SS';
+      if (score >= sThreshold) return 'S';
+      if (score >= aThreshold) return 'A';
+      if (score >= bThreshold) return 'B';
+      return 'C';
+    }
+
+    // 何も選択されていない場合は空文字を返す
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final rank = summary.scoreRank;
+    final rank = _getScoreBasedRank(); // スコアベースのランクを使用
 
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero, // カード外側の余白を削除
-      color: const Color(0xFFF5F0E8), // 背景色を薄いベージュに
+      color: Colors.white, // 背景色を白に変更
+      elevation: 2, // 軽い影を追加
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -160,39 +252,11 @@ class ReliquaryCardView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ヘッダー：部位+メインステータス、アイコン、初期品質、ランク
+              // ヘッダー：アイコン、部位+メインステータス（ランクを背後に重ねる）
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 部位名+メインステータスのColumn
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 部位名（少し小さめ、灰色）
-                        Text(
-                          summary.equipTypeLabel,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        // メインステータス（サブステータスと同じサイズ、黒字、%付き）
-                        Text(
-                          '${summary.mainPropLabel} ${_getMainStatDisplayValue()}',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 18, // サブステータスと同じサイズ
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // アイコン（部位名+メインステータスと同じ高さ）
+                  // アイコン（左端）
                   if (summary.iconAssetPath != null)
                     Image.asset(
                       summary.iconAssetPath!,
@@ -203,26 +267,79 @@ class ReliquaryCardView extends StatelessWidget {
 
                   const SizedBox(width: 12),
 
-                  // スコアランク
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getScoreRankColor(rank).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: _getScoreRankColor(rank),
-                        width: 2.5,
-                      ),
-                    ),
-                    child: Text(
-                      rank,
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: _getScoreRankColor(rank),
+                  // 部位名+メインステータスのColumn（ランクを背後に配置）
+                  Expanded(
+                    child: SizedBox(
+                      height: 80, // アイコンと同じ高さを確保
+                      child: Stack(
+                        clipBehavior: Clip.none, // はみ出しを許可
+                        children: [
+                          // 背後のスコアランク（半透明、縁取り付き）
+                          // 初期値表示時、または何も選択されていない時は非表示
+                          if (!showInitialValues &&
+                              selectedStats.values.any((selected) => selected))
+                            Positioned(
+                              right: -10, // 少し右にずらす
+                              top: -10, // 少し上にずらして中央に配置
+                              child: Opacity(
+                                opacity: 0.15, // 透明度を大幅に下げる
+                                child: Stack(
+                                  children: [
+                                    // 縁取り（黒）
+                                    Text(
+                                      rank,
+                                      style: TextStyle(
+                                        fontSize: 80,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.0,
+                                        foreground: Paint()
+                                          ..style = PaintingStyle.stroke
+                                          ..strokeWidth = 4
+                                          ..color = Colors.black.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                      ),
+                                    ),
+                                    // 本体
+                                    Text(
+                                      rank,
+                                      style: TextStyle(
+                                        fontSize: 80,
+                                        fontWeight: FontWeight.bold,
+                                        color: _getScoreRankColor(rank),
+                                        height: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          // 前面のテキスト
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // 部位名（少し小さめ、灰色）
+                              Text(
+                                summary.equipTypeLabel,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.normal,
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              // メインステータス（黒字、%付き）
+                              Text(
+                                '${summary.mainPropLabel} ${_getMainStatDisplayValue()}',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.normal,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -233,29 +350,29 @@ class ReliquaryCardView extends StatelessWidget {
 
               // サブステータス一覧
               ...summary.substats.map((substat) {
-                // 初期値表示時は初期レベルでの最初のロール品質を取得
-                final showRollQuality =
-                    showInitialValues && substat.rollQualities.isNotEmpty;
-                final rollQuality = showRollQuality
-                    ? substat.rollQualities[0]
-                    : 0.0;
+                // 初期値表示時は初期レベルでの最初のTierを取得
+                final showTierIcon =
+                    showInitialValues && substat.rollTiers.isNotEmpty;
+                final tier = showTierIcon ? substat.rollTiers[0] : 0;
+
+                // このサブステータスがスコア計算対象として選択されているかチェック
+                final isSelected = selectedStats[substat.label] ?? false;
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(
                     children: [
-                      Text(
-                        '○',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 20,
-                        ),
+                      Icon(
+                        isSelected ? Icons.circle : Icons.circle_outlined,
+                        color: Colors.grey.shade600,
+                        size: 20,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           substat.label,
                           style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.normal, // 太字を通常に
                             fontSize: 18,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -265,19 +382,46 @@ class ReliquaryCardView extends StatelessWidget {
                       Text(
                         _getSubstatDisplayValue(substat),
                         style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.normal, // 太字を通常に
                           fontSize: 18,
                         ),
                       ),
-                      // 初期値表示時のみ、各サブステータスのロール品質アイコンを表示
-                      if (showRollQuality) ...[
+                      // 初期値表示時のみ、各サブステータスのTierランクを表示
+                      if (showTierIcon) ...[
                         const SizedBox(width: 8),
-                        _getSubstatRollQualityIcon(rollQuality),
+                        _getSubstatRollQualityRank(tier),
                       ],
                     ],
                   ),
                 );
               }),
+
+              // スコア表示
+              if (selectedStats.values.any((selected) => selected)) ...[
+                const SizedBox(height: 8),
+                const Divider(),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'スコア',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                      ),
+                    ),
+                    Text(
+                      _calculateScore().toStringAsFixed(1),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

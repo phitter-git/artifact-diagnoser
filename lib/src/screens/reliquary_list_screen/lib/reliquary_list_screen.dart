@@ -24,6 +24,18 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
   bool _isLoading = false;
   bool _showInitialValues = false; // 初期値表示フラグ
   String? _uid;
+  StatAppendResolver? _statAppendResolver; // StatAppendResolverを保持
+
+  // スコア計算対象のステータス（デフォルトで会心率・会心ダメージがON）
+  final Map<String, bool> _scoreTargetStats = {
+    '攻撃力%': false,
+    '防御力%': false,
+    'HP%': false,
+    '元素熟知': false,
+    '元素チャージ効率': false,
+    '会心率': true,
+    '会心ダメージ': true,
+  };
 
   @override
   void didChangeDependencies() {
@@ -71,6 +83,7 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
 
       setState(() {
         _summaries = summaries;
+        _statAppendResolver = appendResolver; // StatAppendResolverを保存
         _isLoading = false;
       });
 
@@ -95,9 +108,12 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 画面幅に応じて列数を計算（カード幅約350px想定）
+    // 画面幅に応じて列数を計算（カード幅340px + 間隔16px想定）
     final screenWidth = MediaQuery.of(context).size.width;
-    final crossAxisCount = (screenWidth / 350).floor().clamp(1, 5);
+    final crossAxisCount = ((screenWidth - 32) / (340 + 16)).floor().clamp(
+      1,
+      10,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -152,30 +168,115 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                 ],
               ),
             )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                childAspectRatio: 1.2, // 0.75から1.1に変更（横:縦 = 11:10でより正方形に近く）
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: _summaries.length,
-              itemBuilder: (context, index) {
-                final summary = _summaries[index];
-                return ReliquaryCardView(
-                  summary: summary,
-                  showInitialValues: _showInitialValues,
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ReliquaryDetailScreen(summary: summary),
+          : Column(
+              children: [
+                // 聖遺物件数表示
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  color: Colors.grey[100],
+                  child: Text(
+                    'n個の聖遺物データが登録されています'.replaceFirst(
+                      'n',
+                      _summaries.length.toString(),
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                // スコア計算対象のステータス選択
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'スコア計算対象',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    );
-                  },
-                );
-              },
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: _scoreTargetStats.keys.map((statName) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Checkbox(
+                                value: _scoreTargetStats[statName],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _scoreTargetStats[statName] =
+                                        value ?? false;
+                                  });
+                                },
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _scoreTargetStats[statName] =
+                                        !_scoreTargetStats[statName]!;
+                                  });
+                                },
+                                child: Text(
+                                  statName,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+                // 聖遺物グリッド
+                Expanded(
+                  child: GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      mainAxisExtent: 360, // カードの高さを400pxに拡大（スコア表示分を追加）
+                    ),
+                    itemCount: _summaries.length,
+                    itemBuilder: (context, index) {
+                      final summary = _summaries[index];
+                      return ReliquaryCardView(
+                        summary: summary,
+                        showInitialValues: _showInitialValues,
+                        selectedStats: _scoreTargetStats,
+                        onTap: () {
+                          if (_statAppendResolver == null) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => ReliquaryDetailScreen(
+                                summary: summary,
+                                statAppendResolver: _statAppendResolver!,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
     );
   }

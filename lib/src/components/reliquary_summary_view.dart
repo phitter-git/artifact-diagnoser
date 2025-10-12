@@ -3,12 +3,18 @@ import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
 import 'package:artifact_diagnoser/src/utils/format_utils.dart';
 import 'package:artifact_diagnoser/src/components/enhancement_level_tabs.dart';
 import 'package:artifact_diagnoser/src/components/substat_detail_view.dart';
+import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
 
 /// 聖遺物の解析結果を表示するコンポーネント
 class ReliquarySummaryView extends StatefulWidget {
-  const ReliquarySummaryView({super.key, required this.summary});
+  const ReliquarySummaryView({
+    super.key,
+    required this.summary,
+    required this.statAppendResolver,
+  });
 
   final ReliquarySummary summary;
+  final StatAppendResolver statAppendResolver;
 
   @override
   State<ReliquarySummaryView> createState() => _ReliquarySummaryViewState();
@@ -98,6 +104,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                 substat: substat,
                 currentLevel: _selectedLevel,
                 isInitial: substat.isInitial,
+                statAppendResolver: widget.statAppendResolver,
               ),
           ],
         ),
