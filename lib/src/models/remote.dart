@@ -1,7 +1,3 @@
-/// Remote API データモデル
-///
-/// REST API経由で取得するデータ型を定義したクラス群をエクスポートします。
-
 export 'remote/user_data.dart';
 export 'remote/player_info.dart';
 export 'remote/avatar_info.dart';
