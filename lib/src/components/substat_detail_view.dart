@@ -60,10 +60,18 @@ class SubstatDetailView extends StatelessWidget {
     return percentageStats.contains(substat.propId);
   }
 
+  /// 現在値をフォーマット
+  String _formatCurrentValue(double value) {
+    if (_isPercentageStat()) {
+      return '${value.toStringAsFixed(1)}%';
+    }
+    return formatNumber(value);
+  }
+
   /// 増加値をフォーマット
   String _formatIncrement(double increment) {
     if (_isPercentageStat()) {
-      return increment.toStringAsFixed(1);
+      return '${increment.toStringAsFixed(1)}%';
     }
     return formatNumber(increment);
   }
@@ -118,6 +126,39 @@ class SubstatDetailView extends StatelessWidget {
     }
   }
 
+  /// ティアからランクを取得（Tier 4→S, 3→A, 2→B, 1→C）
+  String? _getTierRank(int? tier) {
+    if (tier == null) return null;
+    switch (tier) {
+      case 3:
+        return 'S';
+      case 2:
+        return 'A';
+      case 1:
+        return 'B';
+      case 0:
+        return 'C';
+      default:
+        return null;
+    }
+  }
+
+  /// ランクに応じた色を取得
+  Color _getRankColor(String rank) {
+    switch (rank) {
+      case 'S':
+        return const Color(0xFFFF8C00); // ダークオレンジ
+      case 'A':
+        return const Color(0xFFA256E1); // パープル
+      case 'B':
+        return const Color(0xFF4A90E2); // ブルー
+      case 'C':
+        return const Color(0xFF73C990); // グリーン
+      default:
+        return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -132,79 +173,122 @@ class SubstatDetailView extends StatelessWidget {
           // サブステータスマーカー
           Text(
             '○',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 20, // 一覧画面と同じサイズに
+            ),
           ),
-          const SizedBox(width: 8),
-
+          const SizedBox(width: 10), // 一覧画面と同じ間隔に
           // ステータス名
           Expanded(
             flex: 3,
             child: Text(
               substat.label,
-              style: theme.textTheme.bodyMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal, // 太字を通常に
+                fontSize: 18, // 一覧画面と同じサイズに
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
 
           // 現在値
           SizedBox(
-            width: 60,
+            width: 80, // 幅を広げてパーセント表示に対応
             child: Text(
-              formatNumber(currentValue),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+              _formatCurrentValue(currentValue),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal, // 太字を通常に
+                fontSize: 18, // 一覧画面と同じサイズに
               ),
               textAlign: TextAlign.right,
             ),
           ),
 
-          // 増加値表示
-          if (showIncrement)
-            Container(
-              margin: const EdgeInsets.only(left: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: _getRollTier(increment) != null
-                    ? _getRollTierColor(
-                        _getRollTier(increment)!,
-                      ).withValues(alpha: 0.15)
-                    : Colors.grey.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: _getRollTier(increment) != null
-                      ? _getRollTierColor(
-                          _getRollTier(increment)!,
-                        ).withValues(alpha: 0.5)
-                      : Colors.grey.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.arrow_upward,
-                    size: 10,
-                    color: _getRollTier(increment) != null
-                        ? _getRollTierColor(_getRollTier(increment)!)
-                        : Colors.grey,
-                  ),
-                  const SizedBox(width: 2),
-                  Text(
-                    '+${_formatIncrement(increment)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: _getRollTier(increment) != null
-                          ? _getRollTierColor(_getRollTier(increment)!)
-                          : Colors.grey,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            const SizedBox(width: 50),
+          // 増加値表示用の固定幅スペース
+          SizedBox(
+            width: 120, // 増加値表示の最大幅に合わせて固定
+            child: showIncrement
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      // 増加値表示
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getRollTier(increment) != null
+                              ? _getRollTierColor(
+                                  _getRollTier(increment)!,
+                                ).withValues(alpha: 0.15)
+                              : Colors.grey.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: _getRollTier(increment) != null
+                                ? _getRollTierColor(
+                                    _getRollTier(increment)!,
+                                  ).withValues(alpha: 0.5)
+                                : Colors.grey.withValues(alpha: 0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.arrow_upward,
+                              size: 15,
+                              color: _getRollTier(increment) != null
+                                  ? _getRollTierColor(_getRollTier(increment)!)
+                                  : Colors.grey,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '+${_formatIncrement(increment)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: _getRollTier(increment) != null
+                                    ? _getRollTierColor(
+                                        _getRollTier(increment)!,
+                                      )
+                                    : Colors.grey,
+                                fontWeight: FontWeight.normal,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // ランクバッジ
+                      if (_getTierRank(_getRollTier(increment)) != null) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getRankColor(
+                              _getTierRank(_getRollTier(increment))!,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            _getTierRank(_getRollTier(increment))!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  )
+                : null,
+          ),
         ],
       ),
     );

@@ -24,6 +24,41 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
   /// 現在選択されている強化レベル
   int _selectedLevel = 20;
 
+  /// パーセント表示が必要なステータスかどうか
+  bool _isPercentageStat(String propId) {
+    const percentageStats = [
+      'FIGHT_PROP_HP_PERCENT',
+      'FIGHT_PROP_ATTACK_PERCENT',
+      'FIGHT_PROP_DEFENSE_PERCENT',
+      'FIGHT_PROP_CRITICAL',
+      'FIGHT_PROP_CRITICAL_HURT',
+      'FIGHT_PROP_CHARGE_EFFICIENCY',
+      'FIGHT_PROP_FIRE_ADD_HURT',
+      'FIGHT_PROP_WATER_ADD_HURT',
+      'FIGHT_PROP_GRASS_ADD_HURT',
+      'FIGHT_PROP_ELEC_ADD_HURT',
+      'FIGHT_PROP_WIND_ADD_HURT',
+      'FIGHT_PROP_ICE_ADD_HURT',
+      'FIGHT_PROP_ROCK_ADD_HURT',
+      'FIGHT_PROP_PHYSICAL_ADD_HURT',
+      'FIGHT_PROP_HEAL_ADD',
+    ];
+    return percentageStats.contains(propId);
+  }
+
+  /// メインステータスの表示値を取得（%付き）
+  String _getMainStatDisplayValue() {
+    final value = widget.summary.mainStatValue;
+    if (value == null) return '';
+
+    // メインステータスがパーセント表示が必要か判定
+    if (widget.summary.mainPropId != null &&
+        _isPercentageStat(widget.summary.mainPropId!)) {
+      return '${formatNumber(value)}%';
+    }
+    return formatNumber(value);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,34 +87,57 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // アイコン表示
-            if (widget.summary.iconAssetPath != null)
-              Center(
-                child: Image.asset(
-                  widget.summary.iconAssetPath!,
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            if (widget.summary.iconAssetPath != null) const SizedBox(height: 8),
+            // ヘッダー：アイコン、部位名+メインステータス（一覧画面と同じレイアウト）
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // アイコン（左端）
+                if (widget.summary.iconAssetPath != null)
+                  Image.asset(
+                    widget.summary.iconAssetPath!,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.contain,
+                  ),
 
-            // メインステータス表示
-            if (widget.summary.mainPropId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  'メインステータス: ${widget.summary.mainPropLabel} '
-                  '(${formatNumber(widget.summary.mainStatValue)})',
-                ),
-              ),
+                const SizedBox(width: 12),
 
-            // 装備部位表示
-            if (widget.summary.equipType?.isNotEmpty == true)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text('装備部位: ${widget.summary.equipTypeLabel}'),
-              ),
+                // 部位名+メインステータスのColumn
+                Expanded(
+                  child: SizedBox(
+                    height: 80, // アイコンと同じ高さを確保
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 部位名（少し小さめ、灰色）
+                        Text(
+                          widget.summary.equipTypeLabel,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.normal,
+                                color: Colors.grey[600],
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        // メインステータス（黒字、%付き）
+                        Text(
+                          '${widget.summary.mainPropLabel} ${_getMainStatDisplayValue()}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.normal,
+                                fontSize: 18,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
 
             // 強化レベル切り替えタブ
             EnhancementLevelTabs(
