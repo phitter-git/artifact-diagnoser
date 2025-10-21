@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:artifact_diagnoser/src/services/user_data_service.dart';
 
 /// ホーム画面（UID入力）
 ///
@@ -12,6 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _uidController = TextEditingController();
+  final _userDataService = UserDataService();
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -53,13 +55,23 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      // TODO: 実際のデータ取得処理を実装
-      await Future.delayed(const Duration(seconds: 1));
+      // UserDataServiceを使ってデータ取得
+      final userData = await _userDataService.fetchUserData(uid);
 
       if (!mounted) return;
 
-      // 聖遺物一覧画面に遷移
-      Navigator.pushNamed(context, '/reliquary-list', arguments: {'uid': uid});
+      // 聖遺物一覧画面に遷移（userDataを渡す）
+      Navigator.pushNamed(
+        context,
+        '/reliquary-list',
+        arguments: {'uid': uid, 'userData': userData},
+      );
+    } on UserDataServiceException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = e.message;
+      });
     } catch (error) {
       if (!mounted) return;
 

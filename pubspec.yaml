@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.2.0
   home_screen:
     path: lib/src/screens/home_screen
   reliquary_list_screen:
