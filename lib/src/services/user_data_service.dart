@@ -12,6 +12,9 @@ class UserDataService {
   /// Enka Network API のベースURL
   static const String _enkaApiBaseUrl = 'https://enka.network/api/uid';
 
+  /// CORSプロキシのURL（Web版でのCORSエラー回避用）
+  static const String _corsProxy = 'https://corsproxy.io/?';
+
   /// ローカル開発用のユーザーデータファイルパス
   static const String _localUserDataPath = 'assets/json/userdata.json';
 
@@ -34,14 +37,10 @@ class UserDataService {
   ///
   /// throws [UserDataServiceException] データ取得に失敗した場合
   Future<UserData> fetchUserData(String uid) async {
-    try {
-      if (_isLocalhost) {
-        return await _loadLocalUserData();
-      } else {
-        return await _fetchFromEnkaApi(uid);
-      }
-    } catch (e) {
-      throw UserDataServiceException('ユーザーデータの取得に失敗しました: $e', originalError: e);
+    if (_isLocalhost) {
+      return await _loadLocalUserData();
+    } else {
+      return await _fetchFromEnkaApi(uid);
     }
   }
 
@@ -57,14 +56,20 @@ class UserDataService {
 
   /// Enka Network APIからユーザーデータを取得
   Future<UserData> _fetchFromEnkaApi(String uid) async {
-    final url = Uri.parse('$_enkaApiBaseUrl/$uid');
+    // Web版ではCORSプロキシを使用
+    final apiUrl = kIsWeb
+        ? '$_corsProxy$_enkaApiBaseUrl/$uid'
+        : '$_enkaApiBaseUrl/$uid';
+    final url = Uri.parse(apiUrl);
 
     try {
       final response = await http
           .get(
             url,
             headers: {
-              'Accept': 'application/json',
+              // ブラウザ標準のAcceptヘッダーに合わせる（Web版でのAPI互換性向上）
+              'Accept':
+                  'application/json, text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8',
               'User-Agent': 'ArtifactDiagnoser/0.1.0',
             },
           )
@@ -78,7 +83,20 @@ class UserDataService {
       if (response.statusCode == 200) {
         // UTF-8でデコード
         final jsonString = utf8.decode(response.bodyBytes);
-        return UserData.fromJsonString(jsonString);
+
+        try {
+          return UserData.fromJsonString(jsonString);
+        } catch (e, stackTrace) {
+          // JSON解析エラーの詳細をログ出力（開発時のデバッグ用）
+          if (kDebugMode) {
+            print('JSON解析エラー: $e');
+            print('スタックトレース: $stackTrace');
+            print(
+              'レスポンス（最初の500文字）: ${jsonString.substring(0, jsonString.length > 500 ? 500 : jsonString.length)}',
+            );
+          }
+          throw UserDataServiceException('レスポンスの解析に失敗しました', originalError: e);
+        }
       } else if (response.statusCode == 404) {
         throw UserDataServiceException('ユーザーが見つかりません。UIDを確認してください。');
       } else if (response.statusCode == 424) {
@@ -92,10 +110,14 @@ class UserDataService {
           'データの取得に失敗しました（ステータスコード: ${response.statusCode}）',
         );
       }
-    } on FormatException catch (e) {
-      throw UserDataServiceException('レスポンスの解析に失敗しました', originalError: e);
+    } on UserDataServiceException {
+      // 既に UserDataServiceException の場合はそのまま再スロー
+      rethrow;
     } on http.ClientException catch (e) {
       throw UserDataServiceException('ネットワークエラーが発生しました', originalError: e);
+    } catch (e) {
+      // その他の予期しない例外
+      throw UserDataServiceException('予期しないエラーが発生しました', originalError: e);
     }
   }
 }
