@@ -38542,7 +38542,7 @@ $S:10}
 A.abw.prototype={}
 A.IA.prototype={
 O(a){var s=null,r=A.tg(s,A.arY(B.a1,s,s,B.Iy),"GISDK",!0)
-return new A.xw(A.ak(["/",new A.a1V(),"/reliquary-list",new A.a1W()],t.N,t.Ab),"/","\u8056\u907a\u7269\u8a3a\u65ad\u5668",r,!1,s)}}
+return new A.xw(A.ak(["/",new A.a1V(),"/reliquary-list",new A.a1W()],t.N,t.Ab),"/artifact-diagnoser/","\u8056\u907a\u7269\u8a3a\u65ad\u5668",r,!1,s)}}
 A.a1V.prototype={
 $1(a){return B.DZ},
 $S:241}
