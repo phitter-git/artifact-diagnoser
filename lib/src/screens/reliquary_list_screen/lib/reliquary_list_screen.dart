@@ -45,14 +45,18 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic>) {
       _uid = args['uid'] as String?;
-      if (_uid != null && _summaries.isEmpty && !_isLoading) {
-        _loadData();
+      final userData = args['userData'] as UserData?;
+      if (_uid != null &&
+          userData != null &&
+          _summaries.isEmpty &&
+          !_isLoading) {
+        _loadData(userData);
       }
     }
   }
 
   /// 聖遺物データの読み込み
-  Future<void> _loadData() async {
+  Future<void> _loadData(UserData userData) async {
     final messenger = ScaffoldMessenger.maybeOf(context);
 
     setState(() {
@@ -60,12 +64,6 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
     });
 
     try {
-      // ユーザーデータの読み込み
-      final jsonString = await rootBundle.loadString(
-        'assets/json/userdata.json',
-      );
-      final userData = UserData.fromJsonString(jsonString);
-
       // 各種サービスの読み込み
       final localizer = await StatLocalizer.load();
       final appendResolver = await StatAppendResolver.load();
