@@ -37,9 +37,26 @@ class UserDataService {
   ///
   /// throws [UserDataServiceException] データ取得に失敗した場合
   Future<UserData> fetchUserData(String uid) async {
+    // デバッグ用ログ
+    if (kDebugMode) {
+      print('fetchUserData called with UID: $uid');
+      print('kIsWeb: $kIsWeb');
+      if (kIsWeb) {
+        print('Uri.base: ${Uri.base}');
+        print('Uri.base.host: ${Uri.base.host}');
+      }
+      print('_isLocalhost: $_isLocalhost');
+    }
+
     if (_isLocalhost) {
+      if (kDebugMode) {
+        print('Loading from local file');
+      }
       return await _loadLocalUserData();
     } else {
+      if (kDebugMode) {
+        print('Fetching from Enka API');
+      }
       return await _fetchFromEnkaApi(uid);
     }
   }
@@ -84,8 +101,23 @@ class UserDataService {
         // UTF-8でデコード
         final jsonString = utf8.decode(response.bodyBytes);
 
+        // デバッグ用ログ
+        if (kDebugMode) {
+          print('API Response received (${jsonString.length} bytes)');
+          final jsonData = jsonDecode(jsonString) as Map<String, dynamic>;
+          print('Response UID: ${jsonData['uid']}');
+          print('Response TTL: ${jsonData['ttl']}');
+          print(
+            'Response playerInfo.nickname: ${(jsonData['playerInfo'] as Map?)?['nickname']}',
+          );
+        }
+
         try {
-          return UserData.fromJsonString(jsonString);
+          final userData = UserData.fromJsonString(jsonString);
+          if (kDebugMode) {
+            print('UserData parsed successfully. UID: ${userData.uid}');
+          }
+          return userData;
         } catch (e, stackTrace) {
           // JSON解析エラーの詳細をログ出力（開発時のデバッグ用）
           if (kDebugMode) {
