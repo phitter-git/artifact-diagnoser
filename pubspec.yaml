@@ -1,5 +1,5 @@
 name: artifact_diagnoser
-description: "A new Flutter project."
+description: "Genshin Impact 聖遺物診断ツール - ユーザーの聖遺物を分析し、最適化の提案を行うWebアプリケーションです。"
 publish_to: 'none'
 version: 0.1.0
 

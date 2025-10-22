@@ -164,8 +164,43 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                 isInitial: substat.isInitial,
                 statAppendResolver: widget.statAppendResolver,
               ),
+
+            // 初期3の+0の場合、4つ目のサブステータス欄に「アクティブ化待ち」を表示
+            if (_selectedLevel == 0 &&
+                widget.summary.initialSubstatCount == 3 &&
+                widget.summary.substats.length == 3)
+              _buildPendingSubstatRow(context),
           ],
         ),
+      ),
+    );
+  }
+
+  /// アクティブ化待ちのサブステータス行を構築
+  Widget _buildPendingSubstatRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          // サブステータスマーカー（グレーアウト）
+          Text(
+            '○',
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 20),
+          ),
+          const SizedBox(width: 10),
+          // アクティブ化待ちのテキスト
+          Expanded(
+            child: Text(
+              '（アクティブ化待ち）',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.normal,
+                fontSize: 18,
+                color: Colors.grey.shade500,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

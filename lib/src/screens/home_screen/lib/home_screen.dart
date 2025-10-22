@@ -28,8 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (value == null || value.isEmpty) {
       return 'UIDを入力してください';
     }
-    if (value.length != 9) {
-      return 'UIDは9桁の数字です';
+    if (value.length != 9 && value.length != 10) {
+      return 'UIDは9～10桁の数字です';
     }
     if (!RegExp(r'^\d+$').hasMatch(value)) {
       return 'UIDは数字のみです';
@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 TextField(
                   controller: _uidController,
                   keyboardType: TextInputType.number,
-                  maxLength: 9,
+                  maxLength: 10,
                   decoration: InputDecoration(
                     hintText: '123456789',
                     border: const OutlineInputBorder(),

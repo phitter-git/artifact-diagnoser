@@ -159,136 +159,215 @@ class SubstatDetailView extends StatelessWidget {
     }
   }
 
+  /// 加算履歴を構築（例: "2.7 + 3.9 + 3.9"）
+  String _buildRollHistory(int level) {
+    final rollsUpToLevel = <String>[];
+
+    for (int i = 0; i < substat.enhancementLevels.length; i++) {
+      if (substat.enhancementLevels[i] <= level &&
+          i < substat.rollValues.length) {
+        final rollValue = substat.rollValues[i];
+        final formatted = _formatIncrement(rollValue);
+        // "+"記号を除去して数値のみ
+        rollsUpToLevel.add(formatted);
+      }
+    }
+
+    return rollsUpToLevel.join(' + ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentValue = _getValueAtLevel(currentLevel);
     final increment = _getIncrementValue();
-    final showIncrement = increment != null && currentLevel > 0;
+
+    // +0で初期値の場合は初期ロール値を使用、それ以外は通常の増加値
+    double? displayIncrement;
+    if (currentLevel == 0 && isInitial && substat.rollValues.isNotEmpty) {
+      displayIncrement = substat.rollValues[0];
+    } else if (currentLevel > 0 && increment != null) {
+      displayIncrement = increment;
+    }
+
+    final showIncrement = displayIncrement != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // サブステータスマーカー
-          Text(
-            '○',
-            style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 20, // 一覧画面と同じサイズに
-            ),
-          ),
-          const SizedBox(width: 10), // 一覧画面と同じ間隔に
-          // ステータス名
-          Expanded(
-            flex: 3,
-            child: Text(
-              substat.label,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.normal, // 太字を通常に
-                fontSize: 18, // 一覧画面と同じサイズに
+          // 1行目: マーカー、ステータス名、現在値、増加値
+          Row(
+            children: [
+              // サブステータスマーカー
+              Text(
+                '○',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-
-          // 現在値
-          SizedBox(
-            width: 80, // 幅を広げてパーセント表示に対応
-            child: Text(
-              _formatCurrentValue(currentValue),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.normal, // 太字を通常に
-                fontSize: 18, // 一覧画面と同じサイズに
+              const SizedBox(width: 10),
+              // ステータス名
+              Expanded(
+                flex: 3,
+                child: Text(
+                  substat.label,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 18,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              textAlign: TextAlign.right,
-            ),
-          ),
 
-          // 増加値表示用の固定幅スペース
-          SizedBox(
-            width: 120, // 増加値表示の最大幅に合わせて固定
-            child: showIncrement
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      // 増加値表示
-                      Container(
-                        margin: const EdgeInsets.only(left: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getRollTier(increment) != null
-                              ? _getRollTierColor(
-                                  _getRollTier(increment)!,
-                                ).withValues(alpha: 0.15)
-                              : Colors.grey.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: _getRollTier(increment) != null
-                                ? _getRollTierColor(
-                                    _getRollTier(increment)!,
-                                  ).withValues(alpha: 0.5)
-                                : Colors.grey.withValues(alpha: 0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.arrow_upward,
-                              size: 15,
-                              color: _getRollTier(increment) != null
-                                  ? _getRollTierColor(_getRollTier(increment)!)
-                                  : Colors.grey,
+              // 現在値
+              SizedBox(
+                width: 80,
+                child: Text(
+                  _formatCurrentValue(currentValue),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+
+              // 増加値表示用の固定幅スペース
+              SizedBox(
+                width: 120,
+                child: showIncrement
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // 増加値表示
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '+${_formatIncrement(increment)}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: _getRollTier(increment) != null
+                            decoration: BoxDecoration(
+                              color: _getRollTier(displayIncrement) != null
+                                  ? _getRollTierColor(
+                                      _getRollTier(displayIncrement)!,
+                                    ).withValues(alpha: 0.15)
+                                  : Colors.grey.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _getRollTier(displayIncrement) != null
                                     ? _getRollTierColor(
-                                        _getRollTier(increment)!,
-                                      )
-                                    : Colors.grey,
-                                fontWeight: FontWeight.normal,
-                                fontSize: 15,
+                                        _getRollTier(displayIncrement)!,
+                                      ).withValues(alpha: 0.5)
+                                    : Colors.grey.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.arrow_upward,
+                                  size: 15,
+                                  color: _getRollTier(displayIncrement) != null
+                                      ? _getRollTierColor(
+                                          _getRollTier(displayIncrement)!,
+                                        )
+                                      : Colors.grey,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '+${_formatIncrement(displayIncrement)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color:
+                                        _getRollTier(displayIncrement) != null
+                                        ? _getRollTierColor(
+                                            _getRollTier(displayIncrement)!,
+                                          )
+                                        : Colors.grey,
+                                    fontWeight: FontWeight.normal,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // ランクバッジ
+                          if (_getTierRank(_getRollTier(displayIncrement)) !=
+                              null) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getRankColor(
+                                  _getTierRank(_getRollTier(displayIncrement))!,
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                _getTierRank(_getRollTier(displayIncrement))!,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      // ランクバッジ
-                      if (_getTierRank(_getRollTier(increment)) != null) ...[
-                        const SizedBox(width: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getRankColor(
-                              _getTierRank(_getRollTier(increment))!,
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            _getTierRank(_getRollTier(increment))!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  )
-                : null,
+                        ],
+                      )
+                    : null,
+              ),
+            ],
           ),
+          // 2行目: 追加回数表示と加算履歴（インデント付き）
+          if (substat.getUpgradesAtLevel(currentLevel) > 0) ...[
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.only(left: 30), // マーカー分のインデント
+              child: Row(
+                children: [
+                  // 追加回数バッジ
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5DEB3).withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      '×${substat.getUpgradesAtLevel(currentLevel)}',
+                      style: const TextStyle(
+                        color: Color(0xFF8B6914),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // 加算履歴表示
+                  Expanded(
+                    child: Text(
+                      _buildRollHistory(currentLevel),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade700,
+                        fontSize: 13,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

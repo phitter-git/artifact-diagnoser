@@ -77,6 +77,13 @@ class SubstatSummary {
     return rollValues[index];
   }
 
+  /// 指定レベルまでの強化回数を取得
+  /// [level]: 聖遺物の強化レベル（+0~+20）
+  /// 返り値: そのレベルまでに強化された回数
+  int getUpgradesAtLevel(int level) {
+    return enhancementLevels.where((l) => l <= level).length;
+  }
+
   /// 理論最大値（最大ロール値 × 強化回数）
   double get theoreticalMaxValue => maxRollValue * totalUpgrades;
 
