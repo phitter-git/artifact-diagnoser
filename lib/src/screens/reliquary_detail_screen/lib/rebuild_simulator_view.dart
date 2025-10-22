@@ -85,6 +85,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   /// サブステータス選択UI
   Widget _buildSubstatSelection() {
     return Card(
+      color: Colors.white,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -136,6 +138,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   /// 再構築種別選択UI
   Widget _buildRebuildTypeSelection() {
     return Card(
+      color: Colors.white,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -181,6 +185,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
+      color: Colors.white,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -257,6 +263,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
+      color: Colors.white,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -383,6 +391,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
+      color: Colors.white,
+      elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

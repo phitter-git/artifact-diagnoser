@@ -103,12 +103,18 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
               controller: _tabController,
               children: [
                 // 詳細タブ
-                SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: ReliquarySummaryView(
-                    summary: widget.summary,
-                    statAppendResolver: widget.statAppendResolver,
-                  ),
+                ValueListenableBuilder<int>(
+                  valueListenable: _scoreTargetChangeNotifier,
+                  builder: (context, _, __) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: ReliquarySummaryView(
+                        summary: widget.summary,
+                        statAppendResolver: widget.statAppendResolver,
+                        selectedStats: _scoreTargetStats,
+                      ),
+                    );
+                  },
                 ),
                 // 再構築シミュレータータブ
                 ValueListenableBuilder<int>(
