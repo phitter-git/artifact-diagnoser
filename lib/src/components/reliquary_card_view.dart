@@ -282,7 +282,7 @@ class ReliquaryCardView extends StatelessWidget {
                               right: -10, // 少し右にずらす
                               top: -10, // 少し上にずらして中央に配置
                               child: Opacity(
-                                opacity: 0.15, // 透明度を大幅に下げる
+                                opacity: 0.25, // 透明度をやや上げて見やすくする
                                 child: Stack(
                                   children: [
                                     // 縁取り（黒）

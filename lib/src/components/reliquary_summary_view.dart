@@ -222,10 +222,10 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                           (selected) => selected,
                         ))
                           Positioned(
-                            right: -10, // 少し右にずらす
-                            top: -10, // 少し上にずらして中央に配置
+                            right: 0, // 右端に配置
+                            top: 5, // 少し上にずらして中央に配置
                             child: Opacity(
-                              opacity: 0.15, // 透明度を大幅に下げる
+                              opacity: 0.25, // 透明度をやや上げて見やすくする
                               child: Stack(
                                 children: [
                                   // 縁取り（黒）
@@ -270,7 +270,11 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.normal,
-                                    color: Colors.grey[600],
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.color ??
+                                        Colors.black54,
                                   ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -337,37 +341,23 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // マーカースペース（サブステータスと揃える）
-                    const SizedBox(width: 30), // ○マーカー(20px) + 間隔(10px)
-                    // スコアラベル
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        'スコア',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                            ),
+                    Text(
+                      'スコア',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
                       ),
                     ),
-                    // スコア値
-                    SizedBox(
-                      width: 80,
-                      child: Text(
-                        _calculateScore().toStringAsFixed(1),
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                              color: Theme.of(context).primaryColor,
-                            ),
-                        textAlign: TextAlign.right,
+                    Text(
+                      _calculateScore().toStringAsFixed(1),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
-                    // 右側の余白（増加値表示領域分）
-                    const SizedBox(width: 120),
                   ],
                 ),
               ),
@@ -395,7 +385,14 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
           // サブステータスマーカー（グレーアウト）
           Text(
             '○',
-            style: TextStyle(color: Colors.grey.shade400, fontSize: 20),
+            style: TextStyle(
+              color:
+                  Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.color?.withOpacity(0.45) ??
+                  Colors.black26,
+              fontSize: 20,
+            ),
           ),
           const SizedBox(width: 10),
           // アクティブ化待ちのテキスト
@@ -406,7 +403,11 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.normal,
                 fontSize: 18,
-                color: Colors.grey.shade500,
+                color:
+                    Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.color?.withOpacity(0.6) ??
+                    Colors.black45,
               ),
             ),
           ),

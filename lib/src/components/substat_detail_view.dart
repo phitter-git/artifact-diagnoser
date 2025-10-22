@@ -197,7 +197,7 @@ class SubstatDetailView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1行目: マーカー、ステータス名、現在値、増加値
+          // 1行目: マーカー、ステータス名、増加値、現在値
           Row(
             children: [
               // サブステータスマーカー
@@ -216,19 +216,6 @@ class SubstatDetailView extends StatelessWidget {
                     fontSize: 18,
                   ),
                   overflow: TextOverflow.ellipsis,
-                ),
-              ),
-
-              // 現在値
-              SizedBox(
-                width: 80,
-                child: Text(
-                  _formatCurrentValue(currentValue),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.normal,
-                    fontSize: 18,
-                  ),
-                  textAlign: TextAlign.right,
                 ),
               ),
 
@@ -319,6 +306,19 @@ class SubstatDetailView extends StatelessWidget {
                         ],
                       )
                     : null,
+              ),
+
+              // 現在値
+              SizedBox(
+                width: 80,
+                child: Text(
+                  _formatCurrentValue(currentValue),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.normal,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
               ),
             ],
           ),

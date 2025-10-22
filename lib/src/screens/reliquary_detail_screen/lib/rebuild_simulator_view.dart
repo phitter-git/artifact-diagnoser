@@ -112,7 +112,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 title: Text(substat.label),
                 subtitle: Text(
                   '$valueText (×${substat.totalUpgrades}回)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color:
+                        Theme.of(context).textTheme.bodySmall?.color ??
+                        Colors.black54,
+                  ),
                 ),
                 value: isSelected,
                 onChanged: (value) {
@@ -159,7 +164,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 subtitle: updateRate != null
                     ? Text(
                         '更新率: ${updateRate.toStringAsFixed(2)}%',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).textTheme.bodySmall?.color ??
+                              Colors.black54,
+                        ),
                       )
                     : null,
                 value: type,
@@ -227,7 +237,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        color: isTarget ? null : Colors.grey,
+                        color: isTarget
+                            ? null
+                            : (Theme.of(context).textTheme.bodyLarge?.color
+                                      ?.withOpacity(0.65) ??
+                                  Colors.black54),
                       ),
                     ),
                     Text(
@@ -236,12 +250,21 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                         fontWeight: isSelected
                             ? FontWeight.bold
                             : FontWeight.normal,
-                        color: isTarget ? null : Colors.grey,
+                        color: isTarget
+                            ? null
+                            : (Theme.of(context).textTheme.bodyLarge?.color
+                                      ?.withOpacity(0.65) ??
+                                  Colors.black54),
                       ),
                     ),
                     Text(
                       '(×${substat.totalUpgrades}回強化)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -285,7 +308,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               '優先: ${result.primarySubstat.label}（残り${result.remainingEnhancements}回強化）',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.blue[700],
+                color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -340,7 +363,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
-                            color: isTarget ? null : Colors.grey,
+                            color: isTarget
+                                ? null
+                                : (Theme.of(context).textTheme.bodyLarge?.color
+                                          ?.withOpacity(0.65) ??
+                                      Colors.black54),
                           ),
                         ),
                         Text(
@@ -349,14 +376,23 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                             fontWeight: isSelected
                                 ? FontWeight.bold
                                 : FontWeight.normal,
-                            color: isTarget ? null : Colors.grey,
+                            color: isTarget
+                                ? null
+                                : (Theme.of(context).textTheme.bodyLarge?.color
+                                          ?.withOpacity(0.65) ??
+                                      Colors.black54),
                           ),
                         ),
                       ],
                     ),
                     Text(
                       '  $explanation',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black54,
+                      ),
                     ),
                   ],
                 ),
@@ -422,7 +458,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                       child: LinearProgressIndicator(
                         value: result.updateRate / 100,
                         minHeight: 20,
-                        backgroundColor: Colors.grey[300],
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.06),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           _getUpdateRateColor(result.updateRate),
                         ),
@@ -442,12 +480,24 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               const SizedBox(height: 12),
               Text(
                 '成功: ${result.successPatternCount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} / ${result.totalPatternCount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} パターン',
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                style: TextStyle(
+                  fontSize: 14,
+                  color:
+                      Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color?.withOpacity(0.8) ??
+                      Colors.black87,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 '(${result.totalPatternCount}通りのパターンを評価)',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                style: TextStyle(
+                  fontSize: 12,
+                  color:
+                      Theme.of(context).textTheme.bodySmall?.color ??
+                      Colors.black54,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -458,12 +508,17 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               Container(
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
-                  color: Colors.orange[50],
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.secondary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning, color: Colors.orange[700]),
+                    Icon(
+                      Icons.warning,
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -478,7 +533,10 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                             '理論値でも現在を超えられません',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color:
+                                  Theme.of(context).textTheme.bodyLarge?.color
+                                      ?.withOpacity(0.75) ??
+                                  Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 4),
