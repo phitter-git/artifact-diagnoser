@@ -1,4 +1,4 @@
-# Artifact Diagnoser（聖遺物診断器）
+# Artifact Diagnoser（聖遺物診断機）
 
 Genshin Impact の聖遺物を詳細に分析し、最適化をサポートする Flutter アプリケーション。
 

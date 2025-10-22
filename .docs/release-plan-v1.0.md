@@ -147,8 +147,8 @@ Genshin Impact聖遺物診断ツールの初回正式版リリース。
   - `web/index.html`
   - `web/manifest.json`
 - **作業内容**:
-  - `<title>`を「聖遺物診断器 - Artifact Diagnoser」に変更
-  - manifest.jsonの`name`を「聖遺物診断器」に変更
+  - `<title>`を「聖遺物診断機 - Artifact Diagnoser」に変更
+  - manifest.jsonの`name`を「聖遺物診断機」に変更
   - manifest.jsonの`short_name`を「聖遺物診断」に変更
   - OGPタグの追加（description, image）
 - **テスト**: Twitter/Discord等でのリンクプレビュー確認

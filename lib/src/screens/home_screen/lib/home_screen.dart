@@ -101,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 // タイトル
                 Text(
-                  '聖遺物診断器',
+                  '聖遺物診断機',
                   style: Theme.of(context).textTheme.displaySmall,
                   textAlign: TextAlign.center,
                 ),

@@ -15,7 +15,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: '聖遺物診断器',
+      title: '聖遺物診断機',
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'GISDK',
