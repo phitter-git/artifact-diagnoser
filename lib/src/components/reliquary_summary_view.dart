@@ -106,7 +106,8 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
               .where((s) => s.propId == propId)
               .firstOrNull;
           if (substat != null) {
-            final value = substat.statValue;
+            // 選択されたレベルでの値を取得
+            final value = substat.getValueAtLevel(_selectedLevel);
             if (propId == 'FIGHT_PROP_CRITICAL') {
               score += value * 2;
             } else if (propId == 'FIGHT_PROP_ELEMENT_MASTERY') {
