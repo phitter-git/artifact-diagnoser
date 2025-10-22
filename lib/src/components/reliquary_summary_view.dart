@@ -66,10 +66,8 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
     // 表示用レベルに変換: (level - 1)
     final displayLevel = widget.summary.displayLevel;
 
-    // 初期サブステータス3個の場合は+4から開始
-    final minLevel = widget.summary.initialLevel;
-
-    _selectedLevel = displayLevel < minLevel ? minLevel : displayLevel;
+    // 初期レベルは常に0から選択可能
+    _selectedLevel = displayLevel;
   }
 
   @override
@@ -77,8 +75,8 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
     // maxLevel: API値 (1-21) を表示用 (+0~+20) に変換
     final maxLevel = widget.summary.displayLevel;
 
-    // 初期サブステータス3個の場合、最小レベルは+4
-    final minLevel = widget.summary.initialLevel;
+    // 最小レベルは常に0（+0から選択可能）
+    const minLevel = 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -158,17 +156,19 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
 
             // 各サブステータスの詳細
             for (final substat in widget.summary.substats)
-              SubstatDetailView(
-                substat: substat,
-                currentLevel: _selectedLevel,
-                isInitial: substat.isInitial,
-                statAppendResolver: widget.statAppendResolver,
-              ),
+              // +0の場合、初期サブステータスのみ表示
+              if (_selectedLevel == 0 && !substat.isInitial)
+                const SizedBox.shrink()
+              else
+                SubstatDetailView(
+                  substat: substat,
+                  currentLevel: _selectedLevel,
+                  isInitial: substat.isInitial,
+                  statAppendResolver: widget.statAppendResolver,
+                ),
 
             // 初期3の+0の場合、4つ目のサブステータス欄に「アクティブ化待ち」を表示
-            if (_selectedLevel == 0 &&
-                widget.summary.initialSubstatCount == 3 &&
-                widget.summary.substats.length == 3)
+            if (_selectedLevel == 0 && widget.summary.initialSubstatCount == 3)
               _buildPendingSubstatRow(context),
           ],
         ),
@@ -178,6 +178,14 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
 
   /// アクティブ化待ちのサブステータス行を構築
   Widget _buildPendingSubstatRow(BuildContext context) {
+    // 初期サブステータスでない（後から追加された）サブステータスを探す
+    final pendingSubstat = widget.summary.substats.firstWhere(
+      (s) => !s.isInitial,
+      orElse: () => widget.summary.substats.first,
+    );
+
+    final optionName = pendingSubstat.label;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -190,16 +198,18 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
           const SizedBox(width: 10),
           // アクティブ化待ちのテキスト
           Expanded(
+            flex: 3,
             child: Text(
-              '（アクティブ化待ち）',
+              optionName,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.normal,
                 fontSize: 18,
                 color: Colors.grey.shade500,
-                fontStyle: FontStyle.italic,
               ),
             ),
           ),
+          // 右側の空白スペース（他の行とレイアウトを揃える）
+          const SizedBox(width: 200), // 現在値と増加値のスペース分
         ],
       ),
     );
