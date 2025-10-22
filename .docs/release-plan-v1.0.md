@@ -84,15 +84,17 @@ Genshin Impact聖遺物診断ツールの初回正式版リリース。
 #### 6. 再構築更新率の表示実装
 - **優先度**: 中
 - **理由**: 最適化支援の重要機能
+- **進捗**: タブUI実装完了（シミュレーター機能は未実装）
 - **影響範囲**:
+  - `lib/src/screens/reliquary_detail_screen/lib/reliquary_detail_screen.dart` ✅
   - `lib/src/services/reliquary_analysis_service.dart`
   - `lib/src/components/reliquary_card_view.dart`
-  - `lib/src/screens/reliquary_detail_screen/lib/reliquary_detail_screen.dart`
 - **作業内容**:
-  - 現在値と理想値（最大値×強化回数）の比較計算
-  - 更新率パーセンテージの算出
-  - 「再構築推奨度」セクションの追加
-  - 推奨度に応じた色分け表示（緑/黄/赤）
+  - ✅ 詳細画面にタブを追加（「詳細」「再構築シミュレーター」）
+  - ⬜ 現在値と理想値（最大値×強化回数）の比較計算
+  - ⬜ 更新率パーセンテージの算出
+  - ⬜ 「再構築推奨度」セクションの実装
+  - ⬜ 推奨度に応じた色分け表示（緑/黄/赤）
 - **テスト**: 様々な聖遺物での推奨度計算確認
 
 ---

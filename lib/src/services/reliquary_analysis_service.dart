@@ -162,7 +162,7 @@ class ReliquaryAnalysisService {
 
               return entry.toSubstatSummary(
                 label: localizer.labelFor(entry.propId),
-                avgRollValue: rollStats.avgRollValue,
+                tierValues: rollStats.tierValues,
                 minRollValue: rollStats.minRollValue,
                 maxRollValue: rollStats.maxRollValue,
                 totalUpgrades: entry.statAppendList.length,
@@ -202,8 +202,8 @@ class ReliquaryAnalysisService {
     final tier4 = _getRollValue(resolver, propId, 4);
 
     return _RollStats(
+      tierValues: [tier1, tier2, tier3, tier4],
       minRollValue: tier1,
-      avgRollValue: (tier1 + tier2 + tier3 + tier4) / 4,
       maxRollValue: tier4,
     );
   }
@@ -212,12 +212,12 @@ class ReliquaryAnalysisService {
 /// ロール値の統計情報
 class _RollStats {
   const _RollStats({
+    required this.tierValues,
     required this.minRollValue,
-    required this.avgRollValue,
     required this.maxRollValue,
   });
 
+  final List<double> tierValues;
   final double minRollValue;
-  final double avgRollValue;
   final double maxRollValue;
 }

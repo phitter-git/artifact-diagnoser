@@ -4,7 +4,7 @@ class SubstatSummary {
     required this.propId,
     required this.label,
     required this.statValue,
-    required this.avgRollValue,
+    required this.tierValues,
     required this.minRollValue,
     required this.maxRollValue,
     required this.totalUpgrades,
@@ -22,13 +22,14 @@ class SubstatSummary {
   /// 現在のステータス値（ゲーム内表示値）
   final double statValue;
 
-  /// 平均ロール値（この聖遺物レアリティでの平均）
-  final double avgRollValue;
+  /// 4段階の上昇値（Tier 1-4の実際の値）
+  /// 例: [2.7, 3.1, 3.5, 3.9] (会心率の場合)
+  final List<double> tierValues;
 
-  /// 最小ロール値
+  /// 最小ロール値（tierValues[0]と同じ）
   final double minRollValue;
 
-  /// 最大ロール値
+  /// 最大ロール値（tierValues[3]と同じ）
   final double maxRollValue;
 
   /// 強化回数
@@ -98,11 +99,12 @@ class SubstatSummary {
     return (statValue - theoreticalMinValue) / range;
   }
 
-  /// ロール品質の平均（avgRollValueと実際の平均を比較）
+  /// ロール品質の平均（平均値と実際の平均を比較）
   /// 1.0 = 平均ロール、> 1.0 = 平均以上、< 1.0 = 平均以下
   double get averageRollQuality {
     if (totalUpgrades == 0) return 1.0;
-    return statValue / (avgRollValue * totalUpgrades);
+    final avgValue = tierValues.reduce((a, b) => a + b) / tierValues.length;
+    return statValue / (avgValue * totalUpgrades);
   }
 
   /// 最高ロール品質（最も高い品質のロール）

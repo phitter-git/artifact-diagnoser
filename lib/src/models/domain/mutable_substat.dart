@@ -30,7 +30,7 @@ class MutableSubstat {
   /// SubstatSummaryに変換する
   SubstatSummary toSubstatSummary({
     required String label,
-    required double avgRollValue,
+    required List<double> tierValues,
     required double minRollValue,
     required double maxRollValue,
     required int totalUpgrades,
@@ -41,7 +41,7 @@ class MutableSubstat {
       propId: propId,
       label: label,
       statValue: statValue,
-      avgRollValue: avgRollValue,
+      tierValues: tierValues,
       minRollValue: minRollValue,
       maxRollValue: maxRollValue,
       totalUpgrades: totalUpgrades,
