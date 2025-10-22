@@ -331,7 +331,9 @@ class SubstatDetailView extends StatelessWidget {
                 children: [
                   // 追加回数バッジ
                   Container(
-                    constraints: const BoxConstraints(minWidth: 32), // 最小幅を固定（"×1"が収まる幅）
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                    ), // 最小幅を固定（"×1"が収まる幅）
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 2,
