@@ -36,18 +36,25 @@ class RebuildSimulatorService {
     return (value * 10).roundToDouble() / 10;
   }
 
-  /// 再構築シミュレーション結果を計算
+  /// 基本情報を計算（再構築種別に依存しない）
   ///
   /// [substat1] 選択サブステータス1
   /// [substat2] 選択サブステータス2
-  /// [rebuildType] 再構築種別
   /// [initialSubstatCount] 初期サブステータス数（3または4）
   /// [scoreTargetPropIds] スコア計算対象のpropIdセット
-  RebuildSimulationResult simulate({
+  ///
+  /// 計算内容:
+  /// - 残り強化回数
+  /// - 優先度に基づくプライマリ・セカンダリの決定
+  /// - 現在スコア
+  /// - 初期値スコア
+  /// - 理論値
+  /// - 理論スコア
+  /// - 更新可能かどうか
+  RebuildSimulationResult calculateBaseInfo({
     required SubstatSummary substat1,
     required SubstatSummary substat2,
     required List<SubstatSummary> allSubstats,
-    required RebuildType rebuildType,
     required int initialSubstatCount,
     required Set<String> scoreTargetPropIds,
   }) {
@@ -102,8 +109,27 @@ class RebuildSimulatorService {
       theoreticalValues: theoreticalValues,
       remainingEnhancements: remainingEnhancements,
       isUpdatePossible: isUpdatePossible,
-      rebuildType: rebuildType,
+      rebuildType: RebuildType.normal,
     );
+  }
+
+  /// 更新率を計算（再構築種別ごと）
+  ///
+  /// [baseInfo] 基本情報（calculateBaseInfo()の結果）
+  /// [rebuildType] 再構築種別
+  ///
+  /// 注: 現在は暫定処理として静的な値を返します
+  void calculateUpdateRate(
+    RebuildSimulationResult baseInfo,
+    RebuildType rebuildType,
+  ) {
+    // 【暫定処理】静的な値を返す
+    // TODO: 実装時に実際の計算ロジックを追加する
+    // const staticUpdateRates = {
+    //   RebuildType.normal: 45.5,
+    //   RebuildType.advanced: 63.2,
+    //   RebuildType.absolute: 85.7,
+    // };
   }
 
   /// 現在スコアを計算

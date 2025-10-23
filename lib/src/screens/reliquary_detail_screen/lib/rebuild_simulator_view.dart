@@ -228,7 +228,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 if (value != null) {
                   setState(() {
                     _selectedRebuildType = value;
-                    _recalculate();
+                    // ⑧ 種別選択時は既存の計算結果を使用（再計算なし）
+                    // 更新率の表示のみ更新
                   });
                 }
               },
@@ -648,56 +649,41 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         .where((s) => _selectedSubstatIds.contains(s.propId))
         .toList();
 
-    // 希望サブオプションが2つ選択された時点で、全種別の更新率を事前計算
-    if (_selectedRebuildType == null) {
-      setState(() {
-        _isCalculating = true;
-        _updateRates.clear();
-      });
-
-      final newUpdateRates = <RebuildType, double>{};
-      for (final type in RebuildType.values) {
-        final result = _simulatorService.simulate(
-          substat1: selectedSubstats[0],
-          substat2: selectedSubstats[1],
-          allSubstats: widget.summary.substats,
-          rebuildType: type,
-          initialSubstatCount: widget.summary.initialSubstatCount,
-          scoreTargetPropIds: widget.scoreTargetPropIds,
-        );
-        if (type == RebuildType.normal) {
-          setState(() {
-            _simulationResult = result;
-          });
-        }
-        newUpdateRates[type] = result.updateRate;
-      }
-
-      setState(() {
-        _updateRates.addAll(newUpdateRates);
-        _isCalculating = false;
-      });
-      return;
-    }
-
-    // 再構築種別が選択されている場合は、その種別のみ計算
-    setState(() {
-      _isCalculating = true;
-    });
-
-    await Future.delayed(const Duration(milliseconds: 100));
-
-    final result = _simulatorService.simulate(
+    // ③ 基本情報を1回計算（再構築種別に依存しない）
+    final baseInfo = _simulatorService.calculateBaseInfo(
       substat1: selectedSubstats[0],
       substat2: selectedSubstats[1],
       allSubstats: widget.summary.substats,
-      rebuildType: _selectedRebuildType!,
       initialSubstatCount: widget.summary.initialSubstatCount,
       scoreTargetPropIds: widget.scoreTargetPropIds,
     );
 
+    // ④ UIに基本情報を表示
     setState(() {
-      _simulationResult = result;
+      _simulationResult = baseInfo;
+      _isCalculating = true;
+      _updateRates.clear();
+    });
+
+    // ⑤⑥ 更新率を非同期で計算（1.5秒待機後に実行）
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // 3種別分の更新率を計算
+    final newUpdateRates = <RebuildType, double>{};
+    for (final type in RebuildType.values) {
+      // 暫定処理：静的な値を返す
+      // TODO: 実装時に calculateUpdateRate() を使用
+      const staticUpdateRates = {
+        RebuildType.normal: 45.5,
+        RebuildType.advanced: 63.2,
+        RebuildType.absolute: 85.7,
+      };
+      newUpdateRates[type] = staticUpdateRates[type] ?? 0.0;
+    }
+
+    // ⑦ 計算完了後UIに反映
+    setState(() {
+      _updateRates.addAll(newUpdateRates);
       _isCalculating = false;
     });
   }
