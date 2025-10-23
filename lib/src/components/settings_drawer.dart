@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/services/theme_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 設定ドロワー（右側）
 ///
@@ -15,42 +16,6 @@ class SettingsDrawer extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // ヘッダー
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Icon(
-                  Icons.settings,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '設定',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // 表示設定セクション
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              '表示設定',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-
           // ダークモード切り替え
           ListenableBuilder(
             listenable: themeService,
@@ -87,17 +52,6 @@ class SettingsDrawer extends StatelessWidget {
 
           const Divider(),
 
-          // アプリ情報セクション
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'アプリ情報',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: Text('バージョン', style: Theme.of(context).textTheme.bodyLarge),
@@ -118,6 +72,92 @@ class SettingsDrawer extends StatelessWidget {
                 applicationVersion: '0.1.0',
               );
             },
+          ),
+
+          const Divider(),
+
+          // クレジット表記
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '原神 © COGNOSPHERE.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '© ウェブサイトで使用されているGenshin Impactのすべてのゲームアセットの権利は、miHoYo Ltd.およびCognosphere Pte., Ltd.が保有しています。その他の財産はそれぞれの所有者に帰属します。',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
+                ),
+                const SizedBox(height: 12),
+                // EnkaNetworkロゴ
+                Image.asset(
+                  'assets/image/enka_network.webp',
+                  height: 32,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerLeft,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'このサイトはEnka.NetworkのAPIを利用して聖遺物情報を取得しています。',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(),
+
+          // 作成者情報
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '© katuoneko',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 4),
+                InkWell(
+                  onTap: () async {
+                    final Uri url = Uri.parse('https://x.com/katuoneko_');
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(
+                        url,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        Theme.of(context).brightness == Brightness.dark
+                            ? 'assets/image/x_logo_white.png'
+                            : 'assets/image/x_logo_black.png',
+                        width: 16,
+                        height: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'https://x.com/katuoneko_',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

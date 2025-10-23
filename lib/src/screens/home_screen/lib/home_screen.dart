@@ -169,6 +169,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 読み込みボタン
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleLoadData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : null,
+                    foregroundColor:
+                        Theme.of(context).brightness == Brightness.dark
+                        ? Theme.of(context).colorScheme.onPrimaryContainer
+                        : null,
+                  ),
                   child: const Padding(
                     padding: EdgeInsets.symmetric(vertical: 16),
                     child: Text('読み込み', style: TextStyle(fontSize: 16)),
