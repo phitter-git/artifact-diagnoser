@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/services/user_data_service.dart';
 import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
+import 'package:artifact_diagnoser/main.dart';
 
 /// ホーム画面（UID入力）
 ///
@@ -109,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      endDrawer: const SettingsDrawer(),
+      endDrawer: SettingsDrawer(themeService: ThemeServiceProvider.of(context)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),

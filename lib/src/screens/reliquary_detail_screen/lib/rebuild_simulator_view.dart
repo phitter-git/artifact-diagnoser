@@ -85,17 +85,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   /// サブステータス選択UI
   Widget _buildSubstatSelection() {
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '希望サブオプションを選択（2つ選択必須）',
-              style: TextStyle(fontSize: 16),
-            ),
+            const Text('希望サブオプションを選択（2つ選択必須）', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 12),
             ...widget.summary.substats.map((substat) {
               final isSelected = _selectedSubstatIds.contains(substat.propId);
@@ -143,47 +140,50 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   /// 再構築種別選択UI
   Widget _buildRebuildTypeSelection() {
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '再構築種別を選択',
-              style: TextStyle(fontSize: 16),
-            ),
+            const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 12),
-            ...RebuildType.values.map((type) {
-              // 各種別の更新率を表示
-              final updateRate = _updateRates[type];
+            RadioGroup<RebuildType>(
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _selectedRebuildType = value;
+                    _recalculate();
+                  });
+                }
+              },
+              child: Column(
+                children: RebuildType.values.map((type) {
+                  // 各種別の更新率を表示
+                  final updateRate = _updateRates[type];
 
-              return RadioListTile<RebuildType>(
-                title: Text(type.labelWithCount),
-                subtitle: updateRate != null
-                    ? Text(
-                        '更新率: ${updateRate.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              Theme.of(context).textTheme.bodySmall?.color ??
-                              Colors.black54,
-                        ),
-                      )
-                    : null,
-                value: type,
-                groupValue: _selectedRebuildType,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedRebuildType = value;
-                      _recalculate();
-                    });
-                  }
-                },
-              );
-            }),
+                  return RadioListTile<RebuildType>(
+                    title: Text(type.labelWithCount),
+                    subtitle: updateRate != null
+                        ? Text(
+                            '更新率: ${updateRate.toStringAsFixed(2)}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.color ??
+                                  Colors.black54,
+                            ),
+                          )
+                        : null,
+                    value: type,
+                    selected: _selectedRebuildType == type,
+                  );
+                }).toList(),
+              ),
+            ),
           ],
         ),
       ),
@@ -195,7 +195,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -206,10 +206,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               children: [
                 Icon(Icons.analytics, size: 20),
                 SizedBox(width: 8),
-                Text(
-                  '現在の状態（再構築前）',
-                  style: TextStyle(fontSize: 16),
-                ),
+                Text('現在の状態（再構築前）', style: TextStyle(fontSize: 16)),
               ],
             ),
             const SizedBox(height: 12),
@@ -240,7 +237,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                         color: isTarget
                             ? null
                             : (Theme.of(context).textTheme.bodyLarge?.color
-                                      ?.withOpacity(0.65) ??
+                                      ?.withValues(alpha: 0.65) ??
                                   Colors.black54),
                       ),
                     ),
@@ -253,7 +250,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                         color: isTarget
                             ? null
                             : (Theme.of(context).textTheme.bodyLarge?.color
-                                      ?.withOpacity(0.65) ??
+                                      ?.withValues(alpha: 0.65) ??
                                   Colors.black54),
                       ),
                     ),
@@ -286,7 +283,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -297,10 +294,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               children: [
                 Icon(Icons.trending_up, size: 20),
                 SizedBox(width: 8),
-                Text(
-                  '理論最大値（選択サブオプション）',
-                  style: TextStyle(fontSize: 16),
-                ),
+                Text('理論最大値（選択サブオプション）', style: TextStyle(fontSize: 16)),
               ],
             ),
             const SizedBox(height: 12),
@@ -366,7 +360,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                             color: isTarget
                                 ? null
                                 : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withOpacity(0.65) ??
+                                          ?.withValues(alpha: 0.65) ??
                                       Colors.black54),
                           ),
                         ),
@@ -379,7 +373,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                             color: isTarget
                                 ? null
                                 : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withOpacity(0.65) ??
+                                          ?.withValues(alpha: 0.65) ??
                                       Colors.black54),
                           ),
                         ),
@@ -427,7 +421,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     final result = _simulationResult!;
 
     return Card(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -460,7 +454,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                         minHeight: 20,
                         backgroundColor: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.06),
+                        ).colorScheme.onSurface.withValues(alpha: 0.06),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           _getUpdateRateColor(result.updateRate),
                         ),
@@ -485,7 +479,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                   color:
                       Theme.of(
                         context,
-                      ).textTheme.bodyLarge?.color?.withOpacity(0.8) ??
+                      ).textTheme.bodyLarge?.color?.withValues(alpha: 0.8) ??
                       Colors.black87,
                 ),
               ),
@@ -510,7 +504,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
-                  ).colorScheme.secondary.withOpacity(0.08),
+                  ).colorScheme.secondary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -535,7 +529,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                               fontSize: 12,
                               color:
                                   Theme.of(context).textTheme.bodyLarge?.color
-                                      ?.withOpacity(0.75) ??
+                                      ?.withValues(alpha: 0.75) ??
                                   Colors.black87,
                             ),
                           ),

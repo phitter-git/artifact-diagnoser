@@ -347,8 +347,10 @@ class SubstatDetailView extends StatelessWidget {
                     ),
                     child: Text(
                       '×${substat.getUpgradesAtLevel(currentLevel)}',
-                      style: const TextStyle(
-                        color: Color(0xFF8B6914),
+                      style: TextStyle(
+                        color: theme.brightness == Brightness.dark
+                            ? const Color(0xFFE8C547)
+                            : const Color(0xFF8B6914),
                         fontSize: 13,
                       ),
                       textAlign: TextAlign.center, // 中央揃え
@@ -360,7 +362,9 @@ class SubstatDetailView extends StatelessWidget {
                     child: Text(
                       _buildRollHistory(currentLevel),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade700,
+                        color: theme.brightness == Brightness.dark
+                            ? theme.colorScheme.onSurface.withValues(alpha: 0.8)
+                            : Colors.grey.shade700,
                         fontSize: 13,
                       ),
                       overflow: TextOverflow.ellipsis,

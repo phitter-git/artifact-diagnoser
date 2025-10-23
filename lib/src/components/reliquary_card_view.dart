@@ -237,7 +237,7 @@ class ReliquaryCardView extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero, // カード外側の余白を削除
-      color: Colors.white, // 背景色を白に変更
+      color: theme.cardColor,
       elevation: 2, // 軽い影を追加
       child: InkWell(
         onTap: onTap,
@@ -394,8 +394,10 @@ class ReliquaryCardView extends StatelessWidget {
                                 ),
                                 child: Text(
                                   '×${substat.totalUpgrades}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF8B6914), // 濃い金色テキスト
+                                  style: TextStyle(
+                                    color: theme.brightness == Brightness.dark
+                                        ? const Color(0xFFE8C547)
+                                        : const Color(0xFF8B6914),
                                     fontSize: 13,
                                   ),
                                 ),
@@ -438,7 +440,7 @@ class ReliquaryCardView extends StatelessWidget {
                       _calculateScore().toStringAsFixed(1),
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontSize: 20,
-                        color: Theme.of(context).primaryColor,
+                        color: theme.colorScheme.primary,
                       ),
                     ),
                   ],

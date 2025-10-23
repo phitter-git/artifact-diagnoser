@@ -141,10 +141,10 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, 2),
             blurRadius: 4,
           ),
@@ -153,12 +153,7 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'スコア計算対象',
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-          ),
+          Text('スコア計算対象', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

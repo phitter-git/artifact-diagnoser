@@ -8,6 +8,7 @@ import 'package:artifact_diagnoser/src/services/reliquary_analysis_service.dart'
 import 'package:artifact_diagnoser/src/components/reliquary_card_view.dart';
 import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 import 'package:artifact_diagnoser/src/screens/reliquary_detail_screen/lib/reliquary_detail_screen.dart';
+import 'package:artifact_diagnoser/main.dart';
 
 /// 聖遺物一覧画面
 ///
@@ -147,7 +148,7 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
           ),
         ],
       ),
-      endDrawer: const SettingsDrawer(),
+      endDrawer: SettingsDrawer(themeService: ThemeServiceProvider.of(context)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _summaries.isEmpty
@@ -172,38 +173,20 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
             )
           : Column(
               children: [
-                // 聖遺物件数表示
+                // スコア計算対象のステータス選択（固定）
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
-                  color: Colors.grey[100],
-                  child: Text(
-                    'n個の聖遺物データが登録されています'.replaceFirst(
-                      'n',
-                      _summaries.length.toString(),
-                    ),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                    ),
-                  ),
-                ),
-                // スコア計算対象のステータス選択
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'スコア計算対象',
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -244,36 +227,71 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                     ],
                   ),
                 ),
-                // 聖遺物グリッド
+                // 聖遺物件数と一覧（スクロール可能）
                 Expanded(
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      mainAxisExtent: 360, // カードの高さを400pxに拡大（スコア表示分を追加）
-                    ),
-                    itemCount: _summaries.length,
-                    itemBuilder: (context, index) {
-                      final summary = _summaries[index];
-                      return ReliquaryCardView(
-                        summary: summary,
-                        showInitialValues: _showInitialValues,
-                        selectedStats: _scoreTargetStats,
-                        onTap: () {
-                          if (_statAppendResolver == null) return;
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => ReliquaryDetailScreen(
-                                summary: summary,
-                                statAppendResolver: _statAppendResolver!,
-                              ),
+                  child: CustomScrollView(
+                    slivers: [
+                      // 聖遺物件数表示
+                      SliverToBoxAdapter(
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
+                          child: Text(
+                            'n個の聖遺物データが登録されています'.replaceFirst(
+                              'n',
+                              _summaries.length.toString(),
                             ),
-                          );
-                        },
-                      );
-                    },
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color,
+                                ),
+                          ),
+                        ),
+                      ),
+                      // 聖遺物グリッド
+                      SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                mainAxisExtent: 360,
+                              ),
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final summary = _summaries[index];
+                            return ReliquaryCardView(
+                              summary: summary,
+                              showInitialValues: _showInitialValues,
+                              selectedStats: _scoreTargetStats,
+                              onTap: () {
+                                if (_statAppendResolver == null) return;
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => ReliquaryDetailScreen(
+                                      summary: summary,
+                                      statAppendResolver: _statAppendResolver!,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }, childCount: _summaries.length),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

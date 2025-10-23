@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:artifact_diagnoser/src/services/theme_service.dart';
 
 /// 設定ドロワー（右側）
 ///
 /// アプリケーションの設定を行うための右側ドロワーです。
-class SettingsDrawer extends StatefulWidget {
-  const SettingsDrawer({super.key});
+class SettingsDrawer extends StatelessWidget {
+  const SettingsDrawer({required this.themeService, super.key});
 
-  @override
-  State<SettingsDrawer> createState() => _SettingsDrawerState();
-}
-
-class _SettingsDrawerState extends State<SettingsDrawer> {
-  // TODO: ダークモードの状態管理
-  bool _isDarkMode = false;
+  final ThemeService themeService;
 
   @override
   Widget build(BuildContext context) {
@@ -57,19 +52,36 @@ class _SettingsDrawerState extends State<SettingsDrawer> {
           ),
 
           // ダークモード切り替え
-          SwitchListTile(
-            secondary: Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
-            title: Text('ダークモード', style: Theme.of(context).textTheme.bodyLarge),
-            subtitle: Text(
-              _isDarkMode ? 'オン' : 'オフ',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            value: _isDarkMode,
-            onChanged: (value) {
-              setState(() {
-                _isDarkMode = value;
-              });
-              // TODO: ThemeMode変更処理
+          ListenableBuilder(
+            listenable: themeService,
+            builder: (context, _) {
+              // ThemeMode.systemの場合、MediaQueryからシステム設定を取得
+              bool isDarkMode;
+              if (themeService.themeMode == ThemeMode.system) {
+                isDarkMode =
+                    MediaQuery.of(context).platformBrightness ==
+                    Brightness.dark;
+              } else {
+                isDarkMode = themeService.isDarkMode;
+              }
+
+              return SwitchListTile(
+                secondary: Icon(
+                  isDarkMode ? Icons.dark_mode : Icons.light_mode,
+                ),
+                title: Text(
+                  'ダークモード',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                subtitle: Text(
+                  isDarkMode ? 'オン' : 'オフ',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                value: isDarkMode,
+                onChanged: (value) {
+                  themeService.toggleDarkMode(value);
+                },
+              );
             },
           ),
 

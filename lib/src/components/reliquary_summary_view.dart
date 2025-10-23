@@ -188,7 +188,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      color: Colors.white, // 背景色を白に変更
+      color: Theme.of(context).cardColor,
       elevation: 2, // 軽い影を追加
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -351,7 +351,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                       _calculateScore().toStringAsFixed(1),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 20,
-                        color: Theme.of(context).primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ],
@@ -385,7 +385,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
               color:
                   Theme.of(
                     context,
-                  ).textTheme.bodyLarge?.color?.withOpacity(0.45) ??
+                  ).textTheme.bodyLarge?.color?.withValues(alpha: 0.45) ??
                   Colors.black26,
               fontSize: 20,
             ),
@@ -402,7 +402,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                 color:
                     Theme.of(
                       context,
-                    ).textTheme.bodyLarge?.color?.withOpacity(0.6) ??
+                    ).textTheme.bodyLarge?.color?.withValues(alpha: 0.6) ??
                     Colors.black45,
               ),
             ),
