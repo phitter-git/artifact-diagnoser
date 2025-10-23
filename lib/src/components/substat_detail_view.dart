@@ -13,6 +13,7 @@ class SubstatDetailView extends StatelessWidget {
     required this.currentLevel,
     required this.isInitial,
     required this.statAppendResolver,
+    this.selectedStats = const {},
   });
 
   /// サブステータスの情報
@@ -26,6 +27,29 @@ class SubstatDetailView extends StatelessWidget {
 
   /// ステータス付加値リゾルバー
   final StatAppendResolver statAppendResolver;
+
+  /// スコア計算対象のステータス（キー: 日本語名、値: 選択状態）
+  final Map<String, bool> selectedStats;
+
+  /// propIdから日本語ステータス名を取得
+  String? _getPropIdToStatName(String propId) {
+    const propIdToStatName = {
+      'FIGHT_PROP_CRITICAL': '会心率',
+      'FIGHT_PROP_CRITICAL_HURT': '会心ダメージ',
+      'FIGHT_PROP_ATTACK_PERCENT': '攻撃力%',
+      'FIGHT_PROP_DEFENSE_PERCENT': '防御力%',
+      'FIGHT_PROP_HP_PERCENT': 'HP%',
+      'FIGHT_PROP_CHARGE_EFFICIENCY': '元素チャージ効率',
+      'FIGHT_PROP_ELEMENT_MASTERY': '元素熟知',
+    };
+    return propIdToStatName[propId];
+  }
+
+  /// このサブステータスがスコア計算対象に選択されているかどうか
+  bool _isScoreTarget() {
+    final statName = _getPropIdToStatName(substat.propId);
+    return statName != null && selectedStats[statName] == true;
+  }
 
   /// 指定された強化レベルでの数値を取得
   double _getValueAtLevel(int level) {
@@ -200,9 +224,9 @@ class SubstatDetailView extends StatelessWidget {
           // 1行目: マーカー、ステータス名、増加値、現在値
           Row(
             children: [
-              // サブステータスマーカー
+              // サブステータスマーカー（選択済み: ●、未選択: ○）
               Text(
-                '○',
+                _isScoreTarget() ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),

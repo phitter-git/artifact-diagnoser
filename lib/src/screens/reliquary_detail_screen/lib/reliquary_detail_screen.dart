@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
 import 'package:artifact_diagnoser/src/components/reliquary_summary_view.dart';
+import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/main.dart';
 import 'rebuild_simulator_view.dart';
 
 /// 聖遺物詳細画面
@@ -102,6 +104,16 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.summary.equipTypeLabel),
+          actions: [
+            Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Scaffold.of(context).openEndDrawer();
+                },
+              ),
+            ),
+          ],
           bottom: TabBar(
             controller: _tabController,
             tabs: const [
@@ -109,6 +121,9 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
               Tab(text: '再構築シミュレーター'),
             ],
           ),
+        ),
+        endDrawer: SettingsDrawer(
+          themeService: ThemeServiceProvider.of(context),
         ),
         body: Column(
           children: [

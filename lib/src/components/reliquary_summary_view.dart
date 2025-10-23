@@ -325,6 +325,7 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                   currentLevel: _selectedLevel,
                   isInitial: substat.isInitial,
                   statAppendResolver: widget.statAppendResolver,
+                  selectedStats: widget.selectedStats,
                 ),
 
             // 初期3の+0の場合、4つ目のサブステータス欄に「アクティブ化待ち」を表示
