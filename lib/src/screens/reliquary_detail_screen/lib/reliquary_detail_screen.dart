@@ -156,6 +156,7 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
                         key: ValueKey(_scoreTargetChangeNotifier.value),
                         summary: widget.summary,
                         scoreTargetPropIds: _scoreTargetPropIds,
+                        statAppendResolver: widget.statAppendResolver,
                       );
                     },
                   ),

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/utils/probability_calculator.dart';
 
@@ -276,4 +278,195 @@ class RebuildSimulatorService {
     }
     return _round(score);
   }
+
+  /// 再構築シミュレーションを実行
+  ///
+  /// [currentSubstats] 現在のサブステータス一覧
+  /// [currentScore] 現在のスコア
+  /// [primarySubstat] 優先サブステータス（保持）
+  /// [secondarySubstat] 非優先サブステータス（保持）
+  /// [initialSubstatCount] 初期サブステータス数（3または4）
+  /// [scoreTargetPropIds] スコア計算対象のpropIdセット
+  /// [rebuildType] 再構築種別（最低保証回数の決定に使用）
+  ///
+  /// 返り値: 再構築シミュレーション結果
+  RebuildSimulationTrial simulateRebuild({
+    required List<SubstatSummary> currentSubstats,
+    required double currentScore,
+    required SubstatSummary primarySubstat,
+    required SubstatSummary secondarySubstat,
+    required int initialSubstatCount,
+    required Set<String> scoreTargetPropIds,
+    required RebuildType rebuildType,
+  }) {
+    final random = Random();
+
+    // 1. 選択した2つのサブステを保持
+    final preservedPropIds = {primarySubstat.propId, secondarySubstat.propId};
+
+    // 2. 全体のサブステータスプールから、選択2つを除いた候補を取得
+    final availablePropIds = currentSubstats
+        .map((s) => s.propId)
+        .where((propId) => !preservedPropIds.contains(propId))
+        .toList();
+
+    // 3. 残り2つをランダム抽選（重複なし）
+    final newPropIds = <String>[];
+    final tempPool = List<String>.from(availablePropIds);
+    for (int i = 0; i < 2; i++) {
+      if (tempPool.isEmpty) break;
+      final index = random.nextInt(tempPool.length);
+      newPropIds.add(tempPool[index]);
+      tempPool.removeAt(index);
+    }
+
+    // 4. 新しいサブステータス一覧を構築（元の順序を保持）
+    // 元のサブステータスの順序に従ってソート
+    final allNewPropIds = <String>[];
+    for (final substat in currentSubstats) {
+      if (substat.propId == primarySubstat.propId ||
+          substat.propId == secondarySubstat.propId ||
+          newPropIds.contains(substat.propId)) {
+        allNewPropIds.add(substat.propId);
+      }
+    }
+
+    // 5. 各サブステの初期値を設定（既存の初期値を保持）
+    final remainingEnhancements = initialSubstatCount == 4 ? 5 : 4;
+    final substatsMap = <String, _SubstatSimulation>{};
+
+    for (final propId in allNewPropIds) {
+      // 元のサブステータスからtierValuesを取得
+      final originalSubstat = currentSubstats.firstWhere(
+        (s) => s.propId == propId,
+      );
+
+      // 初期値は元の値を保持（再構築しても初期値は変わらない）
+      final initialValue = originalSubstat.rollValues.isNotEmpty
+          ? originalSubstat.rollValues[0]
+          : originalSubstat.tierValues[random.nextInt(4)];
+
+      substatsMap[propId] = _SubstatSimulation(
+        propId: propId,
+        label: originalSubstat.label,
+        tierValues: originalSubstat.tierValues,
+        minRollValue: originalSubstat.minRollValue,
+        maxRollValue: originalSubstat.maxRollValue,
+        rollValues: [initialValue],
+        rollTiers: [
+          originalSubstat.tierValues.indexOf(initialValue) + 1,
+        ], // 1-based
+        enhancementLevels: [0],
+      );
+    }
+
+    // 6. 最低保証回数を取得
+    final forcedCount = _getForcedCount(rebuildType);
+
+    // 7. 希望サブオプション（primary + secondary）に最低保証回数を割り当て
+    final guaranteedEnhancements = <String>[];
+    // primaryに優先的に割り当て
+    for (int i = 0; i < forcedCount && i < remainingEnhancements; i++) {
+      if (i % 2 == 0) {
+        guaranteedEnhancements.add(primarySubstat.propId);
+      } else {
+        guaranteedEnhancements.add(secondarySubstat.propId);
+      }
+    }
+
+    // 8. 残りの強化回数をランダム割り当て
+    final remainingRandomEnhancements =
+        remainingEnhancements - guaranteedEnhancements.length;
+    final randomEnhancements = <String>[];
+    for (int i = 0; i < remainingRandomEnhancements; i++) {
+      final selectedPropId =
+          allNewPropIds[random.nextInt(allNewPropIds.length)];
+      randomEnhancements.add(selectedPropId);
+    }
+
+    // 9. 保証回数とランダム回数を結合してシャッフル
+    final allEnhancements = [...guaranteedEnhancements, ...randomEnhancements];
+    allEnhancements.shuffle(random);
+
+    // 10. 強化を実行
+    for (int i = 0; i < allEnhancements.length; i++) {
+      final selectedPropId = allEnhancements[i];
+      final simulation = substatsMap[selectedPropId]!;
+
+      // ランダムにTier値を抽選（Tier 1~4）
+      final rollValue = simulation.tierValues[random.nextInt(4)];
+      final rollTier = simulation.tierValues.indexOf(rollValue) + 1; // 1-based
+
+      // 強化値を追加
+      simulation.rollValues.add(rollValue);
+      simulation.rollTiers.add(rollTier);
+      simulation.enhancementLevels.add((i + 1) * 4); // 4, 8, 12, 16, 20
+    }
+
+    // 11. SubstatSummaryリストを作成（元の順序を保持）
+    final newSubstats = <SubstatSummary>[];
+    for (final propId in allNewPropIds) {
+      final simulation = substatsMap[propId]!;
+      final totalValue = simulation.rollValues.reduce((a, b) => a + b);
+
+      newSubstats.add(
+        SubstatSummary(
+          propId: simulation.propId,
+          label: simulation.label,
+          statValue: _round(totalValue),
+          tierValues: simulation.tierValues,
+          minRollValue: simulation.minRollValue,
+          maxRollValue: simulation.maxRollValue,
+          totalUpgrades: simulation.rollValues.length,
+          enhancementLevels: simulation.enhancementLevels,
+          rollValues: simulation.rollValues,
+          rollTiers: simulation.rollTiers,
+        ),
+      );
+    }
+
+    // 12. 新しいスコアを計算
+    double newScore = 0.0;
+    for (final substat in newSubstats) {
+      if (scoreTargetPropIds.contains(substat.propId)) {
+        final coefficient = _scoreCoefficients[substat.propId] ?? 1.0;
+        newScore += substat.statValue * coefficient;
+      }
+    }
+    newScore = _round(newScore);
+
+    // 9. スコア差分と改善判定
+    final scoreDiff = _round(newScore - currentScore);
+    final isImproved = newScore > currentScore;
+
+    return RebuildSimulationTrial(
+      newSubstats: newSubstats,
+      newScore: newScore,
+      scoreDiff: scoreDiff,
+      isImproved: isImproved,
+    );
+  }
+}
+
+/// シミュレーション用の一時データ構造
+class _SubstatSimulation {
+  _SubstatSimulation({
+    required this.propId,
+    required this.label,
+    required this.tierValues,
+    required this.minRollValue,
+    required this.maxRollValue,
+    required this.rollValues,
+    required this.rollTiers,
+    required this.enhancementLevels,
+  });
+
+  final String propId;
+  final String label;
+  final List<double> tierValues;
+  final double minRollValue;
+  final double maxRollValue;
+  final List<double> rollValues;
+  final List<int> rollTiers;
+  final List<int> enhancementLevels;
 }
