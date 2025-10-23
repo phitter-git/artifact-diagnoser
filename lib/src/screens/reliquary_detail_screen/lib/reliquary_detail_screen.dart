@@ -13,6 +13,7 @@ class ReliquaryDetailScreen extends StatefulWidget {
     super.key,
     required this.summary,
     required this.statAppendResolver,
+    this.initialScoreTargetStats,
   });
 
   /// 聖遺物の情報
@@ -20,6 +21,9 @@ class ReliquaryDetailScreen extends StatefulWidget {
 
   /// ステータス付加値リゾルバー
   final StatAppendResolver statAppendResolver;
+
+  /// 初期スコア計算対象（一覧画面から渡される）
+  final Map<String, bool>? initialScoreTargetStats;
 
   @override
   State<ReliquaryDetailScreen> createState() => _ReliquaryDetailScreenState();
@@ -66,6 +70,11 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // 一覧画面から初期値が渡された場合は反映
+    if (widget.initialScoreTargetStats != null) {
+      _scoreTargetStats.addAll(widget.initialScoreTargetStats!);
+    }
   }
 
   @override
@@ -82,55 +91,64 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.summary.equipTypeLabel),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: '詳細'),
-            Tab(text: '再構築シミュレーター'),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic result) async {
+        if (!didPop) {
+          // 画面を閉じる時にスコア計算対象の状態を返す
+          Navigator.of(context).pop(_scoreTargetStats);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.summary.equipTypeLabel),
+          bottom: TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: '詳細'),
+              Tab(text: '再構築シミュレーター'),
+            ],
+          ),
+        ),
+        body: Column(
+          children: [
+            // スコア計算対象選択UI（全タブ共通）
+            _buildScoreTargetSelection(),
+            // タブコンテンツ
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // 詳細タブ
+                  ValueListenableBuilder<int>(
+                    valueListenable: _scoreTargetChangeNotifier,
+                    builder: (context, _, __) {
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(16),
+                        child: ReliquarySummaryView(
+                          summary: widget.summary,
+                          statAppendResolver: widget.statAppendResolver,
+                          selectedStats: _scoreTargetStats,
+                        ),
+                      );
+                    },
+                  ),
+                  // 再構築シミュレータータブ
+                  ValueListenableBuilder<int>(
+                    valueListenable: _scoreTargetChangeNotifier,
+                    builder: (context, _, __) {
+                      return RebuildSimulatorView(
+                        key: ValueKey(_scoreTargetChangeNotifier.value),
+                        summary: widget.summary,
+                        scoreTargetPropIds: _scoreTargetPropIds,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: Column(
-        children: [
-          // スコア計算対象選択UI（全タブ共通）
-          _buildScoreTargetSelection(),
-          // タブコンテンツ
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // 詳細タブ
-                ValueListenableBuilder<int>(
-                  valueListenable: _scoreTargetChangeNotifier,
-                  builder: (context, _, __) {
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: ReliquarySummaryView(
-                        summary: widget.summary,
-                        statAppendResolver: widget.statAppendResolver,
-                        selectedStats: _scoreTargetStats,
-                      ),
-                    );
-                  },
-                ),
-                // 再構築シミュレータータブ
-                ValueListenableBuilder<int>(
-                  valueListenable: _scoreTargetChangeNotifier,
-                  builder: (context, _, __) {
-                    return RebuildSimulatorView(
-                      key: ValueKey(_scoreTargetChangeNotifier.value),
-                      summary: widget.summary,
-                      scoreTargetPropIds: _scoreTargetPropIds,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

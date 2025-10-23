@@ -276,16 +276,28 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                               summary: summary,
                               showInitialValues: _showInitialValues,
                               selectedStats: _scoreTargetStats,
-                              onTap: () {
+                              onTap: () async {
                                 if (_statAppendResolver == null) return;
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => ReliquaryDetailScreen(
-                                      summary: summary,
-                                      statAppendResolver: _statAppendResolver!,
-                                    ),
-                                  ),
-                                );
+                                final result = await Navigator.of(context)
+                                    .push<Map<String, bool>>(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            ReliquaryDetailScreen(
+                                              summary: summary,
+                                              statAppendResolver:
+                                                  _statAppendResolver!,
+                                              initialScoreTargetStats:
+                                                  _scoreTargetStats,
+                                            ),
+                                      ),
+                                    );
+                                // 詳細画面から戻ってきた時にスコア計算対象を更新
+                                if (result != null) {
+                                  setState(() {
+                                    _scoreTargetStats.clear();
+                                    _scoreTargetStats.addAll(result);
+                                  });
+                                }
                               },
                             );
                           }, childCount: _summaries.length),
