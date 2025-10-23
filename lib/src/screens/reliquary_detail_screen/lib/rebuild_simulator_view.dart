@@ -665,20 +665,16 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       _updateRates.clear();
     });
 
-    // ⑤⑥ 更新率を非同期で計算（1.5秒待機後に実行）
-    await Future.delayed(const Duration(milliseconds: 1500));
-
+    // ⑤⑥ 更新率を計算
     // 3種別分の更新率を計算
     final newUpdateRates = <RebuildType, double>{};
     for (final type in RebuildType.values) {
-      // 暫定処理：静的な値を返す
-      // TODO: 実装時に calculateUpdateRate() を使用
-      const staticUpdateRates = {
-        RebuildType.normal: 45.5,
-        RebuildType.advanced: 63.2,
-        RebuildType.absolute: 85.7,
-      };
-      newUpdateRates[type] = staticUpdateRates[type] ?? 0.0;
+      final updateRate = _simulatorService.calculateUpdateRate(
+        baseInfo: baseInfo,
+        rebuildType: type,
+        scoreTargetPropIds: widget.scoreTargetPropIds,
+      );
+      newUpdateRates[type] = updateRate;
     }
 
     // ⑦ 計算完了後UIに反映

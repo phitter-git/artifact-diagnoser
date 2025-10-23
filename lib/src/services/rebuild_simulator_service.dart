@@ -1,4 +1,5 @@
 import 'package:artifact_diagnoser/src/models/domain.dart';
+import 'package:artifact_diagnoser/src/utils/probability_calculator.dart';
 
 /// 再構築シミュレーターサービス
 ///
@@ -117,19 +118,91 @@ class RebuildSimulatorService {
   ///
   /// [baseInfo] 基本情報（calculateBaseInfo()の結果）
   /// [rebuildType] 再構築種別
+  /// [scoreTargetPropIds] スコア計算対象のpropIdセット
   ///
-  /// 注: 現在は暫定処理として静的な値を返します
-  void calculateUpdateRate(
-    RebuildSimulationResult baseInfo,
-    RebuildType rebuildType,
+  /// 返り値: 更新率（0.0～100.0のパーセント値）
+  double calculateUpdateRate({
+    required RebuildSimulationResult baseInfo,
+    required RebuildType rebuildType,
+    required Set<String> scoreTargetPropIds,
+  }) {
+    // valueSets構築（スコア係数適用）
+    final valueSets = _buildValueSets(baseInfo.allSubstats, scoreTargetPropIds);
+
+    // score（しきい値 = 現在スコア - 初期値スコア）
+    final score = baseInfo.currentScore - baseInfo.initialScore;
+
+    // selectCount（残り強化回数）
+    final selectCount = baseInfo.remainingEnhancements;
+
+    // forcedCount（再構築種別による保証回数）
+    final forcedCount = _getForcedCount(rebuildType);
+
+    // forcedTarget（希望サブオプション2個）
+    final forcedTarget = [
+      baseInfo.primarySubstat.propId,
+      baseInfo.secondarySubstat.propId,
+    ];
+
+    // scoredTarget（スコア計算対象サブオプション）
+    // この聖遺物のサブステータスに存在するものだけをフィルタリング
+    final existingPropIds = baseInfo.allSubstats.map((s) => s.propId).toSet();
+    final scoredTarget = scoreTargetPropIds
+        .where((propId) => existingPropIds.contains(propId))
+        .toList();
+
+    // 厳密計算で確率を求める
+    final probability = ProbabilityCalculator.calculateExceedingProbability(
+      valueSets: valueSets,
+      score: score,
+      selectCount: selectCount,
+      forcedCount: forcedCount,
+      forcedTarget: forcedTarget,
+      scoredTarget: scoredTarget,
+    );
+
+    // パーセント表示に変換
+    return probability * 100.0;
+  }
+
+  /// valueSetsを構築（スコア係数適用）
+  ///
+  /// スコア計算対象のサブステータスには係数を適用し、
+  /// それ以外はそのままの値を使用します。
+  Map<String, List<double>> _buildValueSets(
+    List<SubstatSummary> allSubstats,
+    Set<String> scoreTargetPropIds,
   ) {
-    // 【暫定処理】静的な値を返す
-    // TODO: 実装時に実際の計算ロジックを追加する
-    // const staticUpdateRates = {
-    //   RebuildType.normal: 45.5,
-    //   RebuildType.advanced: 63.2,
-    //   RebuildType.absolute: 85.7,
-    // };
+    final valueSets = <String, List<double>>{};
+    for (final substat in allSubstats) {
+      final coefficient = _scoreCoefficients[substat.propId] ?? 1.0;
+      // スコア計算対象の場合のみ係数を適用
+      if (scoreTargetPropIds.contains(substat.propId)) {
+        valueSets[substat.propId] = substat.tierValues
+            .map((v) => v * coefficient)
+            .toList();
+      } else {
+        // スコア対象外は係数なし（でも計算には含める）
+        valueSets[substat.propId] = substat.tierValues;
+      }
+    }
+    return valueSets;
+  }
+
+  /// 再構築種別から保証回数を取得
+  ///
+  /// - 通常: 最低2回
+  /// - 高級: 最低3回
+  /// - 絶対: 最低4回
+  int _getForcedCount(RebuildType rebuildType) {
+    switch (rebuildType) {
+      case RebuildType.normal:
+        return 2;
+      case RebuildType.advanced:
+        return 3;
+      case RebuildType.absolute:
+        return 4;
+    }
   }
 
   /// 現在スコアを計算
