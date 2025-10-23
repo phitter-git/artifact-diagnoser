@@ -40,6 +40,17 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   // 計算中フラグ
   bool _isCalculating = false;
 
+  /// 選択されたサブステータスのラベルをカンマ区切りで取得
+  String _getSelectedSubstatLabels() {
+    final labels = <String>[];
+    for (final substat in widget.summary.substats) {
+      if (_selectedSubstatIds.contains(substat.propId)) {
+        labels.add(substat.label);
+      }
+    }
+    return labels.join('、');
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -47,8 +58,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ① 希望サブオプション選択（常に表示）
-          _buildSubstatSelection(),
+          // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
+          if (_selectedSubstatIds.length < 2)
+            _buildSubstatSelection()
+          else
+            _buildSubstatSelectionCollapsed(),
           const SizedBox(height: 24),
 
           // ② 再構築種別選択（2つ選択後に表示）
@@ -65,15 +79,27 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
             const SizedBox(height: 32),
           ],
 
-          // ③ 結果セクション（再構築種別選択後に表示）
-          if (_selectedRebuildType != null) ...[
+          // ③ 理論最大値（2つ選択後に表示）
+          if (_selectedSubstatIds.length == 2) ...[
+            if (_isCalculating)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (_simulationResult != null) ...[
+              _buildTheoreticalMaxSection(),
+              const SizedBox(height: 24),
+            ],
+          ],
+
+          // ④ 更新率（再構築種別選択後に表示）
+          if (_selectedSubstatIds.length == 2 &&
+              _selectedRebuildType != null) ...[
             if (_isCalculating)
               const Center(child: CircularProgressIndicator())
             else if (_simulationResult != null) ...[
-              _buildCurrentStateSection(),
-              const SizedBox(height: 24),
-              _buildTheoreticalMaxSection(),
-              const SizedBox(height: 24),
               _buildUpdateRateSection(),
             ],
           ],
@@ -82,7 +108,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     );
   }
 
-  /// サブステータス選択UI
+  /// サブステータス選択UI（展開時）
   Widget _buildSubstatSelection() {
     return Card(
       color: Theme.of(context).cardColor,
@@ -132,6 +158,54 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               );
             }),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// サブステータス選択UI（折りたたまれた状態）
+  Widget _buildSubstatSelectionCollapsed() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedSubstatIds.clear();
+          _selectedRebuildType = null;
+          _simulationResult = null;
+          _updateRates.clear();
+        });
+      },
+      child: Card(
+        color: Theme.of(context).cardColor,
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '希望サブオプションを選択（2つ選択必須）',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${_getSelectedSubstatLabels()}が選択済み',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  Icon(
+                    Icons.edit,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -190,93 +264,94 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     );
   }
 
-  /// 現在の状態セクション
-  Widget _buildCurrentStateSection() {
-    final result = _simulationResult!;
+  /// 【一時的に非表示】現在の状態セクション
+  /// 必要性を検討中のため、コードは残しつつコメントアウト
+  // Widget _buildCurrentStateSection() {
+  //   final result = _simulationResult!;
 
-    return Card(
-      color: Theme.of(context).cardColor,
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.analytics, size: 20),
-                SizedBox(width: 8),
-                Text('現在の状態（再構築前）', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            ...result.allSubstats.map((substat) {
-              final isSelected = _selectedSubstatIds.contains(substat.propId);
-              final isTarget = widget.scoreTargetPropIds.contains(
-                substat.propId,
-              );
-              // 実数値(攻撃力、防御力、HP、元素熟知)は%なし、その他は%あり
-              final hasPercent =
-                  substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
-                  substat.propId != 'FIGHT_PROP_ATTACK' &&
-                  substat.propId != 'FIGHT_PROP_DEFENSE' &&
-                  substat.propId != 'FIGHT_PROP_HP';
-              final valueText = hasPercent
-                  ? '${substat.statValue.toStringAsFixed(1)}%'
-                  : substat.statValue.toStringAsFixed(0);
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  children: [
-                    Text(
-                      '• ${substat.label}: ',
-                      style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isTarget
-                            ? null
-                            : (Theme.of(context).textTheme.bodyLarge?.color
-                                      ?.withValues(alpha: 0.65) ??
-                                  Colors.black54),
-                      ),
-                    ),
-                    Text(
-                      '$valueText ',
-                      style: TextStyle(
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isTarget
-                            ? null
-                            : (Theme.of(context).textTheme.bodyLarge?.color
-                                      ?.withValues(alpha: 0.65) ??
-                                  Colors.black54),
-                      ),
-                    ),
-                    Text(
-                      '(×${substat.totalUpgrades}回強化)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const Divider(height: 24),
-            Text(
-              'スコア対象合計: ${result.currentScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  //   return Card(
+  //     color: Theme.of(context).cardColor,
+  //     elevation: 2,
+  //     child: Padding(
+  //       padding: const EdgeInsets.all(16.0),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           const Row(
+  //             children: [
+  //               Icon(Icons.analytics, size: 20),
+  //               SizedBox(width: 8),
+  //               Text('現在の状態（再構築前）', style: TextStyle(fontSize: 16)),
+  //             ],
+  //           ),
+  //           const SizedBox(height: 12),
+  //           ...result.allSubstats.map((substat) {
+  //             final isSelected = _selectedSubstatIds.contains(substat.propId);
+  //             final isTarget = widget.scoreTargetPropIds.contains(
+  //               substat.propId,
+  //             );
+  //             // 実数値(攻撃力、防御力、HP、元素熟知)は%なし、その他は%あり
+  //             final hasPercent =
+  //                 substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
+  //                 substat.propId != 'FIGHT_PROP_ATTACK' &&
+  //                 substat.propId != 'FIGHT_PROP_DEFENSE' &&
+  //                 substat.propId != 'FIGHT_PROP_HP';
+  //             final valueText = hasPercent
+  //                 ? '${substat.statValue.toStringAsFixed(1)}%'
+  //                 : substat.statValue.toStringAsFixed(0);
+  //             return Padding(
+  //               padding: const EdgeInsets.symmetric(vertical: 4.0),
+  //               child: Row(
+  //                 children: [
+  //                   Text(
+  //                     '• ${substat.label}: ',
+  //                     style: TextStyle(
+  //                       fontWeight: isSelected
+  //                           ? FontWeight.bold
+  //                           : FontWeight.normal,
+  //                       color: isTarget
+  //                           ? null
+  //                           : (Theme.of(context).textTheme.bodyLarge?.color
+  //                                     ?.withValues(alpha: 0.65) ??
+  //                                 Colors.black54),
+  //                     ),
+  //                   ),
+  //                   Text(
+  //                     '$valueText ',
+  //                     style: TextStyle(
+  //                       fontWeight: isSelected
+  //                           ? FontWeight.bold
+  //                           : FontWeight.normal,
+  //                       color: isTarget
+  //                           ? null
+  //                           : (Theme.of(context).textTheme.bodyLarge?.color
+  //                                     ?.withValues(alpha: 0.65) ??
+  //                                 Colors.black54),
+  //                     ),
+  //                   ),
+  //                   Text(
+  //                     '(×${substat.totalUpgrades}回強化)',
+  //                     style: TextStyle(
+  //                       fontSize: 12,
+  //                       color:
+  //                           Theme.of(context).textTheme.bodySmall?.color ??
+  //                           Colors.black54,
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             );
+  //           }),
+  //           const Divider(height: 24),
+  //           Text(
+  //             'スコア対象合計: ${result.currentScore.toStringAsFixed(1)}',
+  //             style: const TextStyle(fontSize: 16),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   /// 理論最大値セクション
   Widget _buildTheoreticalMaxSection() {
@@ -329,15 +404,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 final max = substat.maxRollValue;
                 if (hasPercent) {
                   explanation =
-                      '(初回値 ${initial.toStringAsFixed(1)}% + 最大値${max.toStringAsFixed(1)}% × ${result.remainingEnhancements}回)';
+                      '(初期値 ${initial.toStringAsFixed(1)}% + 最大値${max.toStringAsFixed(1)}% × ${result.remainingEnhancements}回)';
                 } else {
                   explanation =
-                      '(初回値 ${initial.toStringAsFixed(0)} + 最大値${max.toStringAsFixed(0)} × ${result.remainingEnhancements}回)';
+                      '(初期値 ${initial.toStringAsFixed(0)} + 最大値${max.toStringAsFixed(0)} × ${result.remainingEnhancements}回)';
                 }
               } else if (isSelected) {
-                explanation = '(初回値のみ)';
+                explanation = '(初期値のみ)';
               } else {
-                explanation = '(初回値)';
+                explanation = '(初期値)';
               }
 
               final valueText = hasPercent
@@ -580,8 +655,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         _updateRates.clear();
       });
 
-      await Future.delayed(const Duration(milliseconds: 100));
-
       final newUpdateRates = <RebuildType, double>{};
       for (final type in RebuildType.values) {
         final result = _simulatorService.simulate(
@@ -592,6 +665,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
           initialSubstatCount: widget.summary.initialSubstatCount,
           scoreTargetPropIds: widget.scoreTargetPropIds,
         );
+        if (type == RebuildType.normal) {
+          setState(() {
+            _simulationResult = result;
+          });
+        }
         newUpdateRates[type] = result.updateRate;
       }
 
