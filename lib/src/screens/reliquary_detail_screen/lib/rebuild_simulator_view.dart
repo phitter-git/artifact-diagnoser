@@ -94,7 +94,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
           children: [
             const Text(
               '希望サブオプションを選択（2つ選択必須）',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 12),
             ...widget.summary.substats.map((substat) {
@@ -152,7 +152,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
           children: [
             const Text(
               '再構築種別を選択',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 12),
             ...RebuildType.values.map((type) {
@@ -208,7 +208,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 SizedBox(width: 8),
                 Text(
                   '現在の状態（再構築前）',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16),
                 ),
               ],
             ),
@@ -273,7 +273,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
             const Divider(height: 24),
             Text(
               'スコア対象合計: ${result.currentScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
@@ -299,7 +299,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 SizedBox(width: 8),
                 Text(
                   '理論最大値（選択サブオプション）',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16),
                 ),
               ],
             ),
@@ -406,7 +406,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
             const SizedBox(height: 4),
             Text(
               '理論スコア: ${result.theoreticalMaxScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16),
             ),
             if (result.isUpdatePossible)
               Text(

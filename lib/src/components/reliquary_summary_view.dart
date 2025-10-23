@@ -233,7 +233,6 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                                     _getScoreBasedRank(),
                                     style: TextStyle(
                                       fontSize: 80,
-                                      fontWeight: FontWeight.bold,
                                       height: 1.0,
                                       foreground: Paint()
                                         ..style = PaintingStyle.stroke
@@ -248,7 +247,6 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                                     _getScoreBasedRank(),
                                     style: TextStyle(
                                       fontSize: 80,
-                                      fontWeight: FontWeight.bold,
                                       color: _getScoreRankColor(
                                         _getScoreBasedRank(),
                                       ),
@@ -345,15 +343,13 @@ class _ReliquarySummaryViewState extends State<ReliquarySummaryView> {
                   children: [
                     Text(
                       'スコア',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
                       _calculateScore().toStringAsFixed(1),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontSize: 20,
                         color: Theme.of(context).primaryColor,
                       ),

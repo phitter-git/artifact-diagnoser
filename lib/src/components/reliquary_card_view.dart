@@ -117,12 +117,7 @@ class ReliquaryCardView extends StatelessWidget {
       ),
       child: Text(
         rank,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: color,
-          height: 1.0,
-        ),
+        style: TextStyle(fontSize: 16, color: color, height: 1.0),
       ),
     );
   }
@@ -290,7 +285,6 @@ class ReliquaryCardView extends StatelessWidget {
                                       rank,
                                       style: TextStyle(
                                         fontSize: 80,
-                                        fontWeight: FontWeight.bold,
                                         height: 1.0,
                                         foreground: Paint()
                                           ..style = PaintingStyle.stroke
@@ -305,7 +299,6 @@ class ReliquaryCardView extends StatelessWidget {
                                       rank,
                                       style: TextStyle(
                                         fontSize: 80,
-                                        fontWeight: FontWeight.bold,
                                         color: _getScoreRankColor(rank),
                                         height: 1.0,
                                       ),
@@ -403,8 +396,7 @@ class ReliquaryCardView extends StatelessWidget {
                                   '×${substat.totalUpgrades}',
                                   style: const TextStyle(
                                     color: Color(0xFF8B6914), // 濃い金色テキスト
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ),
@@ -440,15 +432,11 @@ class ReliquaryCardView extends StatelessWidget {
                   children: [
                     Text(
                       'スコア',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                      ),
+                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
                     ),
                     Text(
                       _calculateScore().toStringAsFixed(1),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      style: theme.textTheme.titleLarge?.copyWith(
                         fontSize: 20,
                         color: Theme.of(context).primaryColor,
                       ),

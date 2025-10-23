@@ -297,8 +297,7 @@ class SubstatDetailView extends StatelessWidget {
                                 _getTierRank(_getRollTier(displayIncrement))!,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
                                 ),
                               ),
                             ),
@@ -350,8 +349,7 @@ class SubstatDetailView extends StatelessWidget {
                       '×${substat.getUpgradesAtLevel(currentLevel)}',
                       style: const TextStyle(
                         color: Color(0xFF8B6914),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
                       textAlign: TextAlign.center, // 中央揃え
                     ),

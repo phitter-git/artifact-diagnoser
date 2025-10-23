@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:artifact_diagnoser/src/models/remote/user_data.dart';
 import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
 import 'package:artifact_diagnoser/src/services/stat_localizer.dart';
@@ -7,6 +6,7 @@ import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
 import 'package:artifact_diagnoser/src/services/artifact_icon_resolver.dart';
 import 'package:artifact_diagnoser/src/services/reliquary_analysis_service.dart';
 import 'package:artifact_diagnoser/src/components/reliquary_card_view.dart';
+import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 import 'package:artifact_diagnoser/src/screens/reliquary_detail_screen/lib/reliquary_detail_screen.dart';
 
 /// 聖遺物一覧画面
@@ -136,14 +136,18 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // TODO: 設定画面への遷移
-            },
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Scaffold.of(context).openEndDrawer();
+              },
+              tooltip: '設定',
+            ),
           ),
         ],
       ),
+      endDrawer: const SettingsDrawer(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _summaries.isEmpty
@@ -181,8 +185,8 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                       'n',
                       _summaries.length.toString(),
                     ),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                 ),
@@ -199,9 +203,7 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                     children: [
                       Text(
                         'スコア計算対象',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
                       Wrap(

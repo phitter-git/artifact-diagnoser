@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/services/user_data_service.dart';
+import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 
 /// ホーム画面（UID入力）
 ///
@@ -90,6 +91,25 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () {
+                Scaffold.of(context).openEndDrawer();
+              },
+              tooltip: '設定',
+            ),
+          ),
+        ],
+      ),
+      endDrawer: const SettingsDrawer(),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),
