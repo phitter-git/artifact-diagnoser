@@ -1877,7 +1877,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
       // XのWeb Intent URLを開く
       final encodedText = Uri.encodeComponent(text);
-      final xUrl = 'https://twitter.com/intent/tweet?text=$encodedText';
+      final xUrl = 'https://x.com/intent/tweet?text=$encodedText';
       web.window.open(xUrl, '_blank');
 
       if (mounted) {
