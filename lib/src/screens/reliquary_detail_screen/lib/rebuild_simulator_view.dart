@@ -1012,7 +1012,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       children: [
         // サブステータス一覧（左右余白なし）
         _buildSubstatsList(trial),
-        
+
         // アニメーション完了後のみスコア比較とボタンを表示
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
@@ -1040,47 +1040,47 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                             ),
                           )
                         : const Icon(Icons.refresh, size: 22),
-                  label: Text(
-                    _isCalculating ? '実行中...' : '再構築！',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    minimumSize: const Size(0, 50),
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.1),
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
+                    label: Text(
+                      _isCalculating ? '実行中...' : '再構築！',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: const Size(0, 50),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isCalculating ? null : _resetSimulation,
-                  icon: const Icon(Icons.close, size: 22),
-                  label: const Text('リセット', style: TextStyle(fontSize: 16)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    minimumSize: const Size(0, 50),
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.error.withValues(alpha: 0.1),
-                    foregroundColor: Theme.of(context).colorScheme.error,
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.error,
-                      width: 2,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isCalculating ? null : _resetSimulation,
+                    icon: const Icon(Icons.close, size: 22),
+                    label: const Text('リセット', style: TextStyle(fontSize: 16)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: const Size(0, 50),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.error,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ],
       ],
     );
@@ -1235,10 +1235,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           const SizedBox(height: 8),
           // すべてのサブステータスを表示（アニメーションは強化レベルで制御）
           ...trial.newSubstats.asMap().entries.map(
-            (entry) => _buildSimulationSubstatView(
-              entry.value,
-              entry.key,
-            ),
+            (entry) => _buildSimulationSubstatView(entry.value, entry.key),
           ),
         ],
       ),
@@ -1270,8 +1267,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   /// シミュレーション結果のサブステータス表示（ランク付き履歴）
   Widget _buildSimulationSubstatView(SubstatSummary substat, int index) {
     final theme = Theme.of(context);
-    final isScoreTarget =
-        _getSelectedStatsMap()[_getPropIdToStatName(substat.propId)] == true;
+
+    // 希望サブオプション判定: ユーザーが選択した2つのサブオプションのみ
+    final isDesiredSubstat = _selectedSubstatIds.contains(substat.propId);
 
     // ハイライト判定
     final isHighlighted = _highlightedSubstatIndex == index;
@@ -1287,7 +1285,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     final currentArtifactLevel = _currentEnhancementLevel * 4; // 0,4,8,12,16,20
     double displayValue = 0.0;
     int visibleRolls = 0;
-    
+
     for (int i = 0; i < substat.enhancementLevels.length; i++) {
       if (substat.enhancementLevels[i] <= currentArtifactLevel) {
         displayValue += substat.rollValues[i];
@@ -1301,20 +1299,26 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         ? '${displayValue.toStringAsFixed(1)}%'
         : displayValue.toStringAsFixed(0);
 
+    // ハイライト時の色と強度を決定
+    // 希望サブオプション（_selectedSubstatIds内の2つ）: 白く光る
+    // それ以外: かなり弱めに白く光る（ハズレ感）
+    final highlightColor = Colors.white.withValues(alpha: 0.3);
+    final highlightAlpha = isDesiredSubstat ? 0.25 : 0.08;
+    final shadowAlpha = isDesiredSubstat ? 0.3 : 0.1;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: isHighlighted
-            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+            ? highlightColor.withValues(alpha: highlightAlpha)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
         boxShadow: isHighlighted
             ? [
                 BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  spreadRadius: 2,
+                  color: highlightColor.withValues(alpha: shadowAlpha),
+                  blurRadius: 0,
+                  spreadRadius: 0,
                 ),
               ]
             : null,
@@ -1325,9 +1329,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           // 1行目: マーカー、ステータス名、現在値
           Row(
             children: [
-              // マーカー
+              // マーカー（希望サブオプションは●、それ以外は○）
               Text(
-                isScoreTarget ? '●' : '○',
+                isDesiredSubstat ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
@@ -1572,7 +1576,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
       // この強化レベルでどのサブステータスが強化されたかを判定
       final enhancedIndex = _findEnhancedSubstatIndexForLevel(trial, rollLevel);
-      
+
       setState(() {
         _currentEnhancementLevel = rollLevel;
         _highlightedSubstatIndex = enhancedIndex;
@@ -1581,7 +1585,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // ハイライトを0.2秒間表示
       await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
-      
+
       setState(() {
         _highlightedSubstatIndex = -1;
       });
@@ -1596,11 +1600,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
   /// 指定した強化レベルで強化されたサブステータスのインデックスを返す
   /// rollLevel: 1-5（+4, +8, +12, +16, +20に対応）
-  int _findEnhancedSubstatIndexForLevel(RebuildSimulationTrial trial, int rollLevel) {
+  int _findEnhancedSubstatIndexForLevel(
+    RebuildSimulationTrial trial,
+    int rollLevel,
+  ) {
     // rollLevelを聖遺物の強化レベルに変換
     // rollLevel 1 → +4, rollLevel 2 → +8, ... rollLevel 5 → +20
     final artifactLevel = rollLevel * 4;
-    
+
     // 各サブステータスのenhancementLevelsを確認して、該当レベルで強化されたものを探す
     for (int i = 0; i < trial.newSubstats.length; i++) {
       final substat = trial.newSubstats[i];
@@ -1608,7 +1615,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         return i;
       }
     }
-    
+
     // 該当なしの場合は最初のサブステータス（本来は起こらない）
     return 0;
   }
