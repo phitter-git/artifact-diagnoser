@@ -297,7 +297,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   ? '${substat.statValue.toStringAsFixed(1)}%'
                   : substat.statValue.toStringAsFixed(0);
               return CheckboxListTile(
-                title: Text(substat.label, overflow: TextOverflow.ellipsis),
+                title: Row(
+                  children: [
+                    // サブオプションアイコン
+                    Image.asset(
+                      'assets/image/${substat.propId}.webp',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(width: 24, height: 24);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    // サブオプション名
+                    Expanded(
+                      child: Text(
+                        substat.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
                 subtitle: Text(
                   '$valueText (×${substat.totalUpgrades}回)',
                   style: TextStyle(
