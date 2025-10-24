@@ -30,6 +30,7 @@ class RebuildSimulatorView extends StatefulWidget {
 class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     with AutomaticKeepAliveClientMixin {
   final _simulatorService = RebuildSimulatorService();
+  final _scrollController = ScrollController();
 
   // 選択された2つのサブステータスのpropId
   final Set<String> _selectedSubstatIds = {};
@@ -69,6 +70,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   @override
   bool get wantKeepAlive => true;
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   /// 選択されたサブステータスのラベルをカンマ区切りで取得
   String _getSelectedSubstatLabels() {
     final labels = <String>[];
@@ -105,6 +112,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Container(
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -777,7 +785,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
-            const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isAnimationEnabled = !_isAnimationEnabled;
+                });
+              },
+              child: const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+            ),
           ],
         ),
       ],
@@ -824,6 +839,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
+              // サブステータスアイコン
+              Image.asset(
+                'assets/image/${substat.propId}.webp',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(width: 20, height: 20),
+              ),
+              const SizedBox(width: 8),
               // ステータス名
               Expanded(
                 flex: 3,
@@ -1116,7 +1140,17 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
-                const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isAnimationEnabled = !_isAnimationEnabled;
+                    });
+                  },
+                  child: const Text(
+                    'アニメーションを有効化',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1436,6 +1470,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
+              // サブステータスアイコン
+              Image.asset(
+                'assets/image/${substat.propId}.webp',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(width: 20, height: 20),
+              ),
+              const SizedBox(width: 8),
               // ステータス名
               Expanded(
                 flex: 3,
@@ -1662,6 +1705,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
     // 試行回数をカウントアップ
     _rebuildAttemptCount++;
+
+    // 画面最上部へスクロール
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
 
     // アニメーションが無効の場合は即座に結果を表示
     if (!_isAnimationEnabled) {

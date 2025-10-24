@@ -368,6 +368,15 @@ class ReliquaryCardView extends StatelessWidget {
                           children: [
                             Row(
                               children: [
+                                // サブステータスアイコン
+                                Image.asset(
+                                  'assets/image/${substat.propId}.webp',
+                                  width: 20,
+                                  height: 20,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const SizedBox(width: 20, height: 20),
+                                ),
+                                const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     substat.label,

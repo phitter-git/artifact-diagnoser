@@ -398,8 +398,17 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
                   children: [
                     Row(
                       children: [
+                        // サブステータスアイコン
+                        Image.asset(
+                          'assets/image/${substat.propId}.webp',
+                          width: 16,
+                          height: 16,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox(width: 16, height: 16),
+                        ),
+                        const SizedBox(width: 6),
                         Text(
-                          '• ${substat.label}: ',
+                          '${substat.label}: ',
                           style: TextStyle(
                             fontWeight: FontWeight.normal,
                             color: isTarget
