@@ -27,7 +27,8 @@ class RebuildSimulatorView extends StatefulWidget {
   State<RebuildSimulatorView> createState() => _RebuildSimulatorViewState();
 }
 
-class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
+class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
+    with AutomaticKeepAliveClientMixin {
   final _simulatorService = RebuildSimulatorService();
 
   // 選択された2つのサブステータスのpropId
@@ -54,6 +55,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   // 希望サブオプション選択の折りたたみ状態
   bool _isSubstatSelectionCollapsed = false;
 
+  @override
+  bool get wantKeepAlive => true;
+
   /// 選択されたサブステータスのラベルをカンマ区切りで取得
   String _getSelectedSubstatLabels() {
     final labels = <String>[];
@@ -66,18 +70,40 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   }
 
   @override
+  void didUpdateWidget(RebuildSimulatorView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // スコア計算対象が変更された場合、結果を再計算（入力は保持）
+    if (oldWidget.scoreTargetPropIds != widget.scoreTargetPropIds &&
+        _simulationResult != null) {
+      // 現在の選択状態で再計算
+      _recalculate();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin用
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
-          if (_isSubstatSelectionCollapsed)
-            _buildSubstatSelectionCollapsed()
-          else
-            _buildSubstatSelection(),
-          const SizedBox(height: 8),
+          // ③ 再構築シミュレーション結果（実行後に最上部に表示）
+          if (_selectedRebuildType != null &&
+              _isRebuildTypeCollapsed &&
+              _simulationTrial != null) ...[
+            _buildSimulationResultCard(),
+            const SizedBox(height: 8),
+          ],
+
+          // ④ 再構築シミュレーション操作カード（種別選択後に表示、結果がない場合のみ）
+          if (_selectedRebuildType != null &&
+              _isRebuildTypeCollapsed &&
+              _simulationTrial == null) ...[
+            _buildSimulationControlCard(),
+            const SizedBox(height: 8),
+          ],
 
           // ② 再構築種別選択（2つ選択後に表示）
           if (_selectedSubstatIds.length == 2) ...[
@@ -95,26 +121,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
             const SizedBox(height: 8),
           ],
 
-          // ③ 再構築シミュレーションカード（種別選択後に表示）
-          if (_selectedRebuildType != null && _isRebuildTypeCollapsed) ...[
-            _buildSimulationCard(),
-            const SizedBox(height: 8),
-          ],
-
-          // ④ 理論最大値（2つ選択後に表示）
-          if (_selectedSubstatIds.length == 2) ...[
-            if (_isCalculating)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_simulationResult != null) ...[
-              _buildTheoreticalMaxSection(),
-              const SizedBox(height: 8),
-            ],
-          ],
+          // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
+          if (_isSubstatSelectionCollapsed)
+            _buildSubstatSelectionCollapsed()
+          else
+            _buildSubstatSelection(),
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -361,149 +373,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   // }
 
   /// 理論最大値セクション
-  Widget _buildTheoreticalMaxSection() {
-    final result = _simulationResult!;
-
-    return Card(
-      color: Theme.of(context).cardColor,
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.trending_up, size: 20),
-                SizedBox(width: 8),
-                Text('理論最大値（選択サブオプション）', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '優先: ${result.primarySubstat.label}（残り${result.remainingEnhancements}回強化）',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...result.allSubstats.map((substat) {
-              final theoreticalValue =
-                  result.theoreticalValues[substat.propId] ?? 0.0;
-              final isSelected = _selectedSubstatIds.contains(substat.propId);
-              final isTarget = widget.scoreTargetPropIds.contains(
-                substat.propId,
-              );
-              final isPrimary = substat.propId == result.primarySubstat.propId;
-
-              // 実数値(攻撃力、防御力、HP、元素熟知)は%なし、その他は%あり
-              final hasPercent =
-                  substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
-                  substat.propId != 'FIGHT_PROP_ATTACK' &&
-                  substat.propId != 'FIGHT_PROP_DEFENSE' &&
-                  substat.propId != 'FIGHT_PROP_HP';
-
-              String explanation = '';
-              if (isPrimary) {
-                final initial = substat.rollValues[0];
-                final max = substat.maxRollValue;
-                if (hasPercent) {
-                  explanation =
-                      '(初期値 ${initial.toStringAsFixed(1)}% + 最大値${max.toStringAsFixed(1)}% × ${result.remainingEnhancements}回)';
-                } else {
-                  explanation =
-                      '(初期値 ${initial.toStringAsFixed(0)} + 最大値${max.toStringAsFixed(0)} × ${result.remainingEnhancements}回)';
-                }
-              } else if (isSelected) {
-                explanation = '(初期値のみ)';
-              } else {
-                explanation = '(初期値)';
-              }
-
-              final valueText = hasPercent
-                  ? '${theoreticalValue.toStringAsFixed(1)}%'
-                  : theoreticalValue.toStringAsFixed(0);
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '• ${substat.label}: ',
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isTarget
-                                ? null
-                                : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withValues(alpha: 0.65) ??
-                                      Colors.black54),
-                          ),
-                        ),
-                        Text(
-                          valueText,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isTarget
-                                ? null
-                                : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withValues(alpha: 0.65) ??
-                                      Colors.black54),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '  $explanation',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const Divider(height: 24),
-            Text(
-              '再構築前スコア: ${result.currentScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '理論スコア: ${result.theoreticalMaxScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            if (result.isUpdatePossible)
-              Text(
-                '(${result.scoreIncrease >= 0 ? '+' : ''}${result.scoreIncrease.toStringAsFixed(1)})',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: result.scoreIncrease > 0 ? Colors.green : Colors.red,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // /// 更新率セクション（非表示、ラジオボタンに統合済み）
-  // Widget _buildUpdateRateSection() { ... }
-
-  // /// 更新率に応じた色を取得（非表示、ラジオボタンに統合済み）
-  // Color _getUpdateRateColor(double rate) { ... }
-
   /// 再構築種別選択UI（折りたたみ時）
   Widget _buildRebuildTypeSelectionCollapsed() {
     return Card(
@@ -536,42 +405,41 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     );
   }
 
-  /// 再構築シミュレーションカード
-  Widget _buildSimulationCard() {
-    // 実行前: 現在のステータス + 更新率 + 実行ボタン
-    if (_simulationTrial == null) {
-      return Card(
-        color: Theme.of(context).cardColor,
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 現在のサブステータス表示
-              const Text(
-                '現在の聖遺物ステータス',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              ...widget.summary.substats.map(
-                (substat) => _buildCurrentSubstatView(substat),
-              ),
-              const SizedBox(height: 12),
+  /// 再構築シミュレーション操作カード（実行ボタン付き）
+  Widget _buildSimulationControlCard() {
+    return Card(
+      color: Theme.of(context).cardColor,
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 現在のサブステータス表示
+            const Text(
+              '現在の聖遺物ステータス',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            ...widget.summary.substats.map(
+              (substat) => _buildCurrentSubstatView(substat),
+            ),
+            const SizedBox(height: 12),
 
-              // 現在のスコア表示
-              _buildCurrentScoreDisplay(),
-              const SizedBox(height: 16),
+            // 現在のスコア表示
+            _buildCurrentScoreDisplay(),
+            const SizedBox(height: 16),
 
-              // 更新率と実行ボタン
-              _buildExecutionPrompt(),
-            ],
-          ),
+            // 更新率と実行ボタン
+            _buildExecutionPrompt(),
+          ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    // 実行後: 結果表示
+  /// 再構築シミュレーション結果カード
+  Widget _buildSimulationResultCard() {
     return Card(
       color: Theme.of(context).cardColor,
       elevation: 2,
@@ -1296,14 +1164,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       return;
     }
 
-    final selectedSubstats = widget.summary.substats
-        .where((s) => _selectedSubstatIds.contains(s.propId))
-        .toList();
-
     // ③ 基本情報を1回計算（再構築種別に依存しない）
     final baseInfo = _simulatorService.calculateBaseInfo(
-      substat1: selectedSubstats[0],
-      substat2: selectedSubstats[1],
       allSubstats: widget.summary.substats,
       initialSubstatCount: widget.summary.initialSubstatCount,
       scoreTargetPropIds: widget.scoreTargetPropIds,

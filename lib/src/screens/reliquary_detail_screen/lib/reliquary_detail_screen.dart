@@ -3,6 +3,7 @@ import 'package:artifact_diagnoser/src/models/domain/reliquary_summary.dart';
 import 'package:artifact_diagnoser/src/components/reliquary_summary_view.dart';
 import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/main.dart';
 import 'rebuild_simulator_view.dart';
 
@@ -143,10 +144,17 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
                     builder: (context, _, __) {
                       return SingleChildScrollView(
                         padding: const EdgeInsets.all(16),
-                        child: ReliquarySummaryView(
-                          summary: widget.summary,
-                          statAppendResolver: widget.statAppendResolver,
-                          selectedStats: _scoreTargetStats,
+                        child: Column(
+                          children: [
+                            ReliquarySummaryView(
+                              summary: widget.summary,
+                              statAppendResolver: widget.statAppendResolver,
+                              selectedStats: _scoreTargetStats,
+                            ),
+                            const SizedBox(height: 16),
+                            // 理論最大値セクション
+                            _buildTheoreticalMaxSection(),
+                          ],
                         ),
                       );
                     },
@@ -156,7 +164,7 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
                     valueListenable: _scoreTargetChangeNotifier,
                     builder: (context, _, __) {
                       return RebuildSimulatorView(
-                        key: ValueKey(_scoreTargetChangeNotifier.value),
+                        key: ObjectKey(widget.summary),
                         summary: widget.summary,
                         scoreTargetPropIds: _scoreTargetPropIds,
                         statAppendResolver: widget.statAppendResolver,
@@ -206,74 +214,53 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ヘッダー（タイトル + トグルボタン）+ 一行表示
-          if (_isScoreTargetCollapsed) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Text(
-                        'スコア計算対象',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: selectedStats.map((statName) {
-                              final propId = statNameToPropId[statName];
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _buildStatIcon(statName, propId),
-                              );
-                            }).toList(),
-                          ),
+          // ヘッダー行（折り畳み・展開共通の高さ）
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
+              });
+            },
+            child: SizedBox(
+              height: 40, // 固定高さでアイコンと同じ高さを維持
+              child: Row(
+                children: [
+                  Text(
+                    'スコア計算対象',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(width: 12),
+                  // 折り畳み時のみアイコン表示
+                  if (_isScoreTargetCollapsed)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: selectedStats.map((statName) {
+                            final propId = statNameToPropId[statName];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildStatIcon(statName, propId),
+                            );
+                          }).toList(),
                         ),
                       ),
-                    ],
+                    )
+                  else
+                    // 展開時は空白スペースをタップ対象に
+                    const Expanded(child: SizedBox()),
+                  Icon(
+                    _isScoreTargetCollapsed
+                        ? Icons.expand_more
+                        : Icons.expand_less,
+                    color: Theme.of(context).iconTheme.color,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.expand_more),
-                  onPressed: () {
-                    setState(() {
-                      _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
-                    });
-                  },
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
+                ],
+              ),
             ),
-          ]
-          // 展開時: ヘッダー + Checkboxリスト
-          else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('スコア計算対象', style: Theme.of(context).textTheme.titleSmall),
-                IconButton(
-                  icon: const Icon(Icons.expand_less),
-                  onPressed: () {
-                    setState(() {
-                      _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
-                    });
-                  },
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
+          ),
+          // 展開時: Checkboxリスト
+          if (!_isScoreTargetCollapsed) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -327,6 +314,141 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
         width: 32,
         height: 32,
         fit: BoxFit.contain,
+      ),
+    );
+  }
+
+  /// 理論最大値セクション（詳細タブ下部）
+  Widget _buildTheoreticalMaxSection() {
+    // RebuildSimulatorServiceで理論値を計算
+    final simulatorService = RebuildSimulatorService();
+    final result = simulatorService.calculateBaseInfo(
+      allSubstats: widget.summary.substats,
+      initialSubstatCount: widget.summary.initialSubstatCount,
+      scoreTargetPropIds: _scoreTargetPropIds,
+    );
+
+    return Card(
+      color: Theme.of(context).cardColor,
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.trending_up, size: 20),
+                SizedBox(width: 8),
+                Text('理論最大値（スコア計算対象）', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '優先: ${result.primarySubstat.label}（残り${result.remainingEnhancements}回強化）',
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...result.allSubstats.map((substat) {
+              final theoreticalValue =
+                  result.theoreticalValues[substat.propId] ?? 0.0;
+              final isTarget = _scoreTargetPropIds.contains(substat.propId);
+              final isPrimary = substat.propId == result.primarySubstat.propId;
+
+              // 実数値(攻撃力、防御力、HP、元素熟知)は%なし、その他は%あり
+              final hasPercent =
+                  substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
+                  substat.propId != 'FIGHT_PROP_ATTACK' &&
+                  substat.propId != 'FIGHT_PROP_DEFENSE' &&
+                  substat.propId != 'FIGHT_PROP_HP';
+
+              String explanation = '';
+              if (isPrimary) {
+                final initial = substat.rollValues[0];
+                final max = substat.maxRollValue;
+                if (hasPercent) {
+                  explanation =
+                      '(初期値 ${initial.toStringAsFixed(1)}% + 最大値${max.toStringAsFixed(1)}% × ${result.remainingEnhancements}回)';
+                } else {
+                  explanation =
+                      '(初期値 ${initial.toStringAsFixed(0)} + 最大値${max.toStringAsFixed(0)} × ${result.remainingEnhancements}回)';
+                }
+              } else {
+                explanation = '(初期値のみ)';
+              }
+
+              final valueText = hasPercent
+                  ? '${theoreticalValue.toStringAsFixed(1)}%'
+                  : theoreticalValue.toStringAsFixed(0);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '• ${substat.label}: ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.normal,
+                            color: isTarget
+                                ? null
+                                : (Theme.of(context).textTheme.bodyLarge?.color
+                                          ?.withValues(alpha: 0.65) ??
+                                      Colors.black54),
+                          ),
+                        ),
+                        Text(
+                          valueText,
+                          style: TextStyle(
+                            fontWeight: FontWeight.normal,
+                            color: isTarget
+                                ? null
+                                : (Theme.of(context).textTheme.bodyLarge?.color
+                                          ?.withValues(alpha: 0.65) ??
+                                      Colors.black54),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '  $explanation',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color:
+                            Theme.of(context).textTheme.bodySmall?.color ??
+                            Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const Divider(height: 24),
+            Text(
+              '現在スコア: ${result.currentScore.toStringAsFixed(1)}',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '理論スコア: ${result.theoreticalMaxScore.toStringAsFixed(1)}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            if (result.isUpdatePossible)
+              Text(
+                '(${result.scoreIncrease >= 0 ? '+' : ''}${result.scoreIncrease.toStringAsFixed(1)})',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: result.scoreIncrease > 0 ? Colors.green : Colors.red,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

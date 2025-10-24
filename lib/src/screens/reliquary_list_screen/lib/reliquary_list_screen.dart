@@ -296,74 +296,53 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ヘッダー（タイトル + トグルボタン）+ 一行表示
-          if (_isScoreTargetCollapsed) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Text(
-                        'スコア計算対象',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: selectedStats.map((statName) {
-                              final propId = statNameToPropId[statName];
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _buildStatIcon(statName, propId),
-                              );
-                            }).toList(),
-                          ),
+          // ヘッダー行（折り畳み・展開共通の高さ）
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
+              });
+            },
+            child: SizedBox(
+              height: 40, // 固定高さでアイコンと同じ高さを維持
+              child: Row(
+                children: [
+                  Text(
+                    'スコア計算対象',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(width: 12),
+                  // 折り畳み時のみアイコン表示
+                  if (_isScoreTargetCollapsed)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: selectedStats.map((statName) {
+                            final propId = statNameToPropId[statName];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildStatIcon(statName, propId),
+                            );
+                          }).toList(),
                         ),
                       ),
-                    ],
+                    )
+                  else
+                    // 展開時は空白スペースをタップ対象に
+                    const Expanded(child: SizedBox()),
+                  Icon(
+                    _isScoreTargetCollapsed
+                        ? Icons.expand_more
+                        : Icons.expand_less,
+                    color: Theme.of(context).iconTheme.color,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.expand_more),
-                  onPressed: () {
-                    setState(() {
-                      _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
-                    });
-                  },
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
+                ],
+              ),
             ),
-          ]
-          // 展開時: ヘッダー + Checkboxリスト
-          else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('スコア計算対象', style: Theme.of(context).textTheme.titleSmall),
-                IconButton(
-                  icon: const Icon(Icons.expand_less),
-                  onPressed: () {
-                    setState(() {
-                      _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
-                    });
-                  },
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
+          ),
+          // 展開時: Checkboxリスト
+          if (!_isScoreTargetCollapsed) ...[
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,

@@ -41,22 +41,23 @@ class RebuildSimulatorService {
 
   /// 基本情報を計算（再構築種別に依存しない）
   ///
-  /// [substat1] 選択サブステータス1
-  /// [substat2] 選択サブステータス2
+  /// [allSubstats] 全サブステータス（4つ）
   /// [initialSubstatCount] 初期サブステータス数（3または4）
   /// [scoreTargetPropIds] スコア計算対象のpropIdセット
   ///
+  /// scoreTargetPropIdsから優先度の高い2つを自動選択し、
+  /// それをプライマリ・セカンダリとして理論値を計算します。
+  /// 選択サブオプションがない場合（例：詳細画面で最初に表示）も対応。
+  ///
   /// 計算内容:
   /// - 残り強化回数
-  /// - 優先度に基づくプライマリ・セカンダリの決定
+  /// - 優先度に基づくプライマリ・セカンダリの決定（scoreTargetPropIdsから）
   /// - 現在スコア
   /// - 初期値スコア
   /// - 理論値
   /// - 理論スコア
   /// - 更新可能かどうか
   RebuildSimulationResult calculateBaseInfo({
-    required SubstatSummary substat1,
-    required SubstatSummary substat2,
     required List<SubstatSummary> allSubstats,
     required int initialSubstatCount,
     required Set<String> scoreTargetPropIds,
@@ -64,11 +65,56 @@ class RebuildSimulatorService {
     // 残り強化回数を計算（初期3なら4回、初期4なら5回）
     final remainingEnhancements = initialSubstatCount == 4 ? 5 : 4;
 
-    // 優先度に基づいてプライマリ・セカンダリを決定
-    final priority1 = _substatPriority[substat1.propId] ?? 0;
-    final priority2 = _substatPriority[substat2.propId] ?? 0;
-    final primarySubstat = priority1 >= priority2 ? substat1 : substat2;
-    final secondarySubstat = priority1 >= priority2 ? substat2 : substat1;
+    // scoreTargetPropIdsから優先度の高い順に、プライマリとセカンダリを決定
+    final targetSubstats = allSubstats
+        .where((substat) => scoreTargetPropIds.contains(substat.propId))
+        .toList();
+
+    // 優先度順でソート（高い方が最初）
+    targetSubstats.sort((a, b) {
+      final priorityA = _substatPriority[a.propId] ?? 0;
+      final priorityB = _substatPriority[b.propId] ?? 0;
+      return priorityB.compareTo(priorityA); // 降順（高い方が最初）
+    });
+
+    // プライマリとセカンダリを決定
+    // scoreTargetPropIdsに2つ以上の要素がある場合は、優先度で決定
+    // 1つだけの場合はそれがプライマリ
+    // 0個の場合は、allSubstatsから優先度の高い順に選択
+    final SubstatSummary primarySubstat;
+    final SubstatSummary secondarySubstat;
+
+    if (targetSubstats.length >= 2) {
+      // scoreTargetPropIdsから優先度で選択
+      primarySubstat = targetSubstats[0];
+      secondarySubstat = targetSubstats[1];
+    } else if (targetSubstats.length == 1) {
+      // 1つだけの場合、プライマリはそれで、セカンダリは他から選択
+      primarySubstat = targetSubstats[0];
+      final otherSubstats = allSubstats
+          .where((s) => s.propId != primarySubstat.propId)
+          .toList();
+      otherSubstats.sort((a, b) {
+        final priorityA = _substatPriority[a.propId] ?? 0;
+        final priorityB = _substatPriority[b.propId] ?? 0;
+        return priorityB.compareTo(priorityA);
+      });
+      secondarySubstat = otherSubstats.isNotEmpty
+          ? otherSubstats[0]
+          : allSubstats[allSubstats.length > 1 ? 1 : 0];
+    } else {
+      // scoreTargetPropIdsが空の場合は、allSubstatsから優先度順に選択
+      final sortedSubstats = List<SubstatSummary>.from(allSubstats);
+      sortedSubstats.sort((a, b) {
+        final priorityA = _substatPriority[a.propId] ?? 0;
+        final priorityB = _substatPriority[b.propId] ?? 0;
+        return priorityB.compareTo(priorityA);
+      });
+      primarySubstat = sortedSubstats[0];
+      secondarySubstat = sortedSubstats.length > 1
+          ? sortedSubstats[1]
+          : sortedSubstats[0];
+    }
 
     // 現在スコアを計算
     final currentScore = _calculateCurrentScore(
