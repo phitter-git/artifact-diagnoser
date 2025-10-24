@@ -192,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '再構築のスコア更新率を計算して最適な投資先を判断',
+                                '再構築のスコア更新率を自動計算して最適な投資先を判断',
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(fontWeight: FontWeight.w500),
                               ),

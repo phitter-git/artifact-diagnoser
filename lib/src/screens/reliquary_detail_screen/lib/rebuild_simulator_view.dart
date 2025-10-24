@@ -132,10 +132,131 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               else
                 _buildSubstatSelection(),
               const SizedBox(height: 8),
+
+              // 説明カード（常に表示）
+              _buildIntroductionCard(),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// 説明カード（初回表示時）
+  Widget _buildIntroductionCard() {
+    return Card(
+      elevation: 2,
+      color: Theme.of(
+        context,
+      ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 24,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '再構築シミュレーターについて',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureRow(
+              icon: Icons.auto_fix_high,
+              title: '「聖啓の塵」の活用を支援',
+              description: '再構築すべき聖遺物かどうかの判断材料を提供',
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureRow(
+              icon: Icons.calculate_outlined,
+              title: 'スコア更新率を自動計算',
+              description: '現在のスコアを超える確率を3種類の再構築タイプごとに表示',
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureRow(
+              icon: Icons.replay,
+              title: '何度でもシミュレーション',
+              description: '聖啓の塵を消費せず何度もつよくてニューゲーム',
+            ),
+            // const SizedBox(height: 16),
+            // Container(
+            //   padding: const EdgeInsets.all(12),
+            //   decoration: BoxDecoration(
+            //     color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+            //     borderRadius: BorderRadius.circular(8),
+            //     border: Border.all(
+            //       color: Theme.of(context).dividerColor,
+            //     ),
+            //   ),
+            //   child: Row(
+            //     children: [
+            //       Icon(
+            //         Icons.arrow_downward,
+            //         size: 20,
+            //         color: Theme.of(context).colorScheme.primary,
+            //       ),
+            //       const SizedBox(width: 8),
+            //       Expanded(
+            //         child: Text(
+            //           'まずは希望サブオプションを2つ選択してください',
+            //           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            //             fontWeight: FontWeight.w500,
+            //           ),
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+            // ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 機能説明行
+  Widget _buildFeatureRow({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -245,7 +366,29 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
+            Row(
+              children: [
+                const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message:
+                      '※更新率はモンテカルロ法(N=200k)による計算結果です。\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                  padding: const EdgeInsets.all(12),
+                  textStyle: const TextStyle(fontSize: 12, color: Colors.white),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.help_outline,
+                    size: 18,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             RadioGroup<RebuildType>(
               onChanged: (value) {
@@ -543,10 +686,42 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Theme.of(context).dividerColor),
           ),
-          child: Text(
-            '${rebuildType.label}によって現在のスコアを更新する確率は${updateRate.toStringAsFixed(2)}%です。実行しますか？',
-            style: const TextStyle(fontSize: 14),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      '${rebuildType.label}によって現在のスコアを更新する確率は${updateRate.toStringAsFixed(2)}%です。実行しますか？',
+                      style: const TextStyle(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message:
+                        '※この結果はモンテカルロ法(N=200k)によるシミュレーションを用いており、\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                    padding: const EdgeInsets.all(12),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.help_outline,
+                      size: 18,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
