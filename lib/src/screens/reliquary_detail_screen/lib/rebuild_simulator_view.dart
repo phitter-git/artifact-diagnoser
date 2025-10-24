@@ -1406,6 +1406,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     // 追加ステータス判定: ユーザーが選択した2つのサブオプションのみ
     final isDesiredSubstat = _selectedSubstatIds.contains(substat.propId);
 
+    // スコア計算対象判定: scoreTargetPropIdsに含まれているか
+    final isScoreTarget = widget.scoreTargetPropIds.contains(substat.propId);
+
     // ハイライト判定
     final isHighlighted = _highlightedSubstatIndex == index;
 
@@ -1464,9 +1467,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           // 1行目: マーカー、ステータス名、現在値
           Row(
             children: [
-              // マーカー（追加ステータスは●、それ以外は○）
+              // マーカー（スコア計算対象は●、それ以外は○）
               Text(
-                isDesiredSubstat ? '●' : '○',
+                isScoreTarget ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
