@@ -329,6 +329,7 @@ class ReliquaryCardView extends StatelessWidget {
                                   fontWeight: FontWeight.normal,
                                   fontSize: 18,
                                 ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -362,61 +363,72 @@ class ReliquaryCardView extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              substat.label,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.normal, // 太字を通常に
-                                fontSize: 18,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    substat.label,
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight:
+                                              FontWeight.normal, // 太字を通常に
+                                          fontSize: 18,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                // 追加回数表示
+                                if (substat.totalUpgrades > 0) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFFF5DEB3,
+                                      ).withValues(alpha: 0.3), // 薄い金色背景
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(
+                                          0xFFD4AF37,
+                                        ).withValues(alpha: 0.5), // 金色の枠
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '×${substat.totalUpgrades}',
+                                      style: TextStyle(
+                                        color:
+                                            theme.brightness == Brightness.dark
+                                            ? const Color(0xFFE8C547)
+                                            : const Color(0xFF8B6914),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
-                            // 追加回数表示
-                            if (substat.totalUpgrades > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(
-                                    0xFFF5DEB3,
-                                  ).withValues(alpha: 0.3), // 薄い金色背景
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFD4AF37,
-                                    ).withValues(alpha: 0.5), // 金色の枠
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text(
-                                  '×${substat.totalUpgrades}',
-                                  style: TextStyle(
-                                    color: theme.brightness == Brightness.dark
-                                        ? const Color(0xFFE8C547)
-                                        : const Color(0xFF8B6914),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Text(
                         _getSubstatDisplayValue(substat),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.normal, // 太字を通常に
                           fontSize: 18,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                       // 初期値表示時のみ、各サブステータスのTierランクを表示
                       if (showTierIcon) ...[
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         _getSubstatRollQualityRank(tier),
                       ],
                     ],

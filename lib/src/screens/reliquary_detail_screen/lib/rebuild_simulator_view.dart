@@ -292,7 +292,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   ? '${substat.statValue.toStringAsFixed(1)}%'
                   : substat.statValue.toStringAsFixed(0);
               return CheckboxListTile(
-                title: Text(substat.label),
+                title: Text(substat.label, overflow: TextOverflow.ellipsis),
                 subtitle: Text(
                   '$valueText (×${substat.totalUpgrades}回)',
                   style: TextStyle(
@@ -747,7 +747,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 )
               : const Icon(Icons.play_arrow, size: 24),
           label: Text(
-            _isCalculating ? '計算中...' : '再構築を実行',
+            _isCalculating ? '実行中...' : '再構築を実行',
             style: const TextStyle(fontSize: 16),
           ),
           style: ElevatedButton.styleFrom(
@@ -811,6 +811,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                     fontWeight: FontWeight.normal,
                     fontSize: 18,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               // 現在値
@@ -1033,7 +1034,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                         )
                       : const Icon(Icons.refresh, size: 22),
                   label: Text(
-                    _isCalculating ? '計算中...' : 'もう一度試す',
+                    _isCalculating ? '実行中...' : '再構築！',
                     style: const TextStyle(fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -1294,6 +1295,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                     fontWeight: FontWeight.normal,
                     fontSize: 18,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               // 現在値
