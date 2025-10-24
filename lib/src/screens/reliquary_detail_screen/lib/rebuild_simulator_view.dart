@@ -407,6 +407,19 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
   /// 再構築シミュレーション操作カード（実行ボタン付き）
   Widget _buildSimulationControlCard() {
+    // メインステータスの表示値を取得
+    String getMainStatDisplayValue() {
+      final value = widget.summary.mainStatValue;
+      if (value == null) return '';
+
+      // メインステータスがパーセント表示が必要か判定
+      final propId = widget.summary.mainPropId;
+      if (propId != null && _isPercentageStat(propId)) {
+        return '${value.toStringAsFixed(1)}%';
+      }
+      return value.toStringAsFixed(0);
+    }
+
     return Card(
       color: Theme.of(context).cardColor,
       elevation: 2,
@@ -415,6 +428,53 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 聖遺物ヘッダー（アイコン + 部位 + メインステータス）
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // アイコン
+                if (widget.summary.iconAssetPath != null)
+                  Image.asset(
+                    widget.summary.iconAssetPath!,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.contain,
+                  ),
+                const SizedBox(width: 12),
+                // 部位名とメインステータス
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 部位名
+                      Text(
+                        widget.summary.equipTypeLabel,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.normal,
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      // メインステータス
+                      Text(
+                        '${widget.summary.mainPropLabel} ${getMainStatDisplayValue()}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.normal,
+                              fontSize: 16,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+
             // 現在のサブステータス表示
             const Text(
               '現在の聖遺物ステータス',
@@ -448,24 +508,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ヘッダー（余白あり）
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14.0, 14.0, 14.0, 8.0),
-              child: Row(
-                children: [
-                  const Icon(Icons.casino, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    '再構築シミュレーション結果',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             // 結果表示（余白なし）
             _buildSimulationResult(),
 
@@ -925,6 +967,19 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
   /// サブステータス一覧表示
   Widget _buildSubstatsList(RebuildSimulationTrial trial) {
+    // メインステータスの表示値を取得
+    String getMainStatDisplayValue() {
+      final value = widget.summary.mainStatValue;
+      if (value == null) return '';
+
+      // メインステータスがパーセント表示が必要か判定
+      final propId = widget.summary.mainPropId;
+      if (propId != null && _isPercentageStat(propId)) {
+        return '${value.toStringAsFixed(1)}%';
+      }
+      return value.toStringAsFixed(0);
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -935,9 +990,53 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 聖遺物ヘッダー（アイコン + 部位 + メインステータス）
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // アイコン
+              if (widget.summary.iconAssetPath != null)
+                Image.asset(
+                  widget.summary.iconAssetPath!,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
+              const SizedBox(width: 12),
+              // 部位名とメインステータス
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 部位名
+                    Text(
+                      widget.summary.equipTypeLabel,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // メインステータス
+                    Text(
+                      '${widget.summary.mainPropLabel} ${getMainStatDisplayValue()}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 8),
           const Text(
-            '新しいサブステータス',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            '再構築シミュレーション結果',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           ...trial.newSubstats.map(
@@ -946,6 +1045,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         ],
       ),
     );
+  }
+
+  /// パーセント表示が必要なステータスかどうか
+  bool _isPercentageStat(String propId) {
+    const percentageStats = [
+      'FIGHT_PROP_HP_PERCENT',
+      'FIGHT_PROP_ATTACK_PERCENT',
+      'FIGHT_PROP_DEFENSE_PERCENT',
+      'FIGHT_PROP_CRITICAL',
+      'FIGHT_PROP_CRITICAL_HURT',
+      'FIGHT_PROP_CHARGE_EFFICIENCY',
+      'FIGHT_PROP_FIRE_ADD_HURT',
+      'FIGHT_PROP_WATER_ADD_HURT',
+      'FIGHT_PROP_GRASS_ADD_HURT',
+      'FIGHT_PROP_ELEC_ADD_HURT',
+      'FIGHT_PROP_WIND_ADD_HURT',
+      'FIGHT_PROP_ICE_ADD_HURT',
+      'FIGHT_PROP_ROCK_ADD_HURT',
+      'FIGHT_PROP_PHYSICAL_ADD_HURT',
+      'FIGHT_PROP_HEAL_ADD',
+    ];
+    return percentageStats.contains(propId);
   }
 
   /// シミュレーション結果のサブステータス表示（ランク付き履歴）
@@ -1160,11 +1281,34 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   void _executeSimulation() {
     if (_simulationResult == null || _selectedRebuildType == null) return;
 
+    // ユーザーが選択した希望サブオプションからprimaryとsecondaryを取得
+    final selectedSubstats = widget.summary.substats
+        .where((s) => _selectedSubstatIds.contains(s.propId))
+        .toList();
+
+    if (selectedSubstats.length != 2) return;
+
+    // 優先度順にソート（高い方がprimary）
+    selectedSubstats.sort((a, b) {
+      const priority = {
+        'FIGHT_PROP_CRITICAL': 7,
+        'FIGHT_PROP_CRITICAL_HURT': 6,
+        'FIGHT_PROP_DEFENSE_PERCENT': 5,
+        'FIGHT_PROP_CHARGE_EFFICIENCY': 4,
+        'FIGHT_PROP_ATTACK_PERCENT': 3,
+        'FIGHT_PROP_HP_PERCENT': 2,
+        'FIGHT_PROP_ELEMENT_MASTERY': 1,
+      };
+      final priorityA = priority[a.propId] ?? 0;
+      final priorityB = priority[b.propId] ?? 0;
+      return priorityB.compareTo(priorityA);
+    });
+
     final trial = _simulatorService.simulateRebuild(
       currentSubstats: _simulationResult!.allSubstats,
       currentScore: _simulationResult!.currentScore,
-      primarySubstat: _simulationResult!.primarySubstat,
-      secondarySubstat: _simulationResult!.secondarySubstat,
+      primarySubstat: selectedSubstats[0], // ユーザー選択の第1希望
+      secondarySubstat: selectedSubstats[1], // ユーザー選択の第2希望
       initialSubstatCount: widget.summary.initialSubstatCount,
       scoreTargetPropIds: widget.scoreTargetPropIds,
       rebuildType: _selectedRebuildType!,
@@ -1214,6 +1358,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         baseInfo: baseInfo,
         rebuildType: type,
         scoreTargetPropIds: widget.scoreTargetPropIds,
+        desiredSubstatIds: _selectedSubstatIds, // ユーザーが選択した希望サブオプション
       );
       newUpdateRates[type] = updateRate;
     }

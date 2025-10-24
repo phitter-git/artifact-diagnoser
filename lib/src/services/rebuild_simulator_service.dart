@@ -173,6 +173,7 @@ class RebuildSimulatorService {
     required RebuildSimulationResult baseInfo,
     required RebuildType rebuildType,
     required Set<String> scoreTargetPropIds,
+    Set<String>? desiredSubstatIds, // 希望サブオプション（ユーザー選択）
   }) {
     // valueSets構築（スコア係数適用）
     final valueSets = _buildValueSets(baseInfo.allSubstats, scoreTargetPropIds);
@@ -187,10 +188,11 @@ class RebuildSimulatorService {
     final forcedCount = _getForcedCount(rebuildType);
 
     // forcedTarget（希望サブオプション2個）
-    final forcedTarget = [
-      baseInfo.primarySubstat.propId,
-      baseInfo.secondarySubstat.propId,
-    ];
+    // desiredSubstatIdsが指定されている場合はそれを使用、なければbaseInfoから取得
+    final forcedTarget =
+        desiredSubstatIds != null && desiredSubstatIds.length == 2
+        ? desiredSubstatIds.toList()
+        : [baseInfo.primarySubstat.propId, baseInfo.secondarySubstat.propId];
 
     // scoredTarget（スコア計算対象サブオプション）
     // この聖遺物のサブステータスに存在するものだけをフィルタリング
