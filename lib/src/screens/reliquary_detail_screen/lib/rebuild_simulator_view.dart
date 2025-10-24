@@ -55,6 +55,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   // 希望サブオプション選択の折りたたみ状態
   bool _isSubstatSelectionCollapsed = false;
 
+  // アニメーション関連
+  bool _isAnimating = false; // アニメーション実行中フラグ
+  int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
+  int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
+
   @override
   bool get wantKeepAlive => true;
 
@@ -1007,32 +1012,34 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       children: [
         // サブステータス一覧（左右余白なし）
         _buildSubstatsList(trial),
-        const SizedBox(height: 8),
+        
+        // アニメーション完了後のみスコア比較とボタンを表示
+        if (!_isAnimating) ...[
+          const SizedBox(height: 8),
+          // スコア比較（左右余白なし）
+          _buildScoreComparison(trial),
+          const SizedBox(height: 8),
 
-        // スコア比較（左右余白なし）
-        _buildScoreComparison(trial),
-        const SizedBox(height: 8),
-
-        // アクションボタン（横余白のみ追加）
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _isCalculating ? null : _executeSimulation,
-                  icon: _isCalculating
-                      ? SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.primary,
+          // アクションボタン（横余白のみ追加）
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isCalculating ? null : _executeSimulation,
+                    icon: _isCalculating
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
                             ),
-                          ),
-                        )
-                      : const Icon(Icons.refresh, size: 22),
+                          )
+                        : const Icon(Icons.refresh, size: 22),
                   label: Text(
                     _isCalculating ? '実行中...' : '再構築！',
                     style: const TextStyle(fontSize: 16),
@@ -1074,6 +1081,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             ],
           ),
         ),
+        ],
       ],
     );
   }
@@ -1223,10 +1231,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
-          const Text('再構築シミュレーション結果', style: TextStyle(fontSize: 18)),
+          const Text('シミュレーション結果', style: TextStyle(fontSize: 18)),
           const SizedBox(height: 8),
-          ...trial.newSubstats.map(
-            (substat) => _buildSimulationSubstatView(substat),
+          // すべてのサブステータスを表示（アニメーションは強化レベルで制御）
+          ...trial.newSubstats.asMap().entries.map(
+            (entry) => _buildSimulationSubstatView(
+              entry.value,
+              entry.key,
+            ),
           ),
         ],
       ),
@@ -1256,10 +1268,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   }
 
   /// シミュレーション結果のサブステータス表示（ランク付き履歴）
-  Widget _buildSimulationSubstatView(SubstatSummary substat) {
+  Widget _buildSimulationSubstatView(SubstatSummary substat, int index) {
     final theme = Theme.of(context);
     final isScoreTarget =
         _getSelectedStatsMap()[_getPropIdToStatName(substat.propId)] == true;
+
+    // ハイライト判定
+    final isHighlighted = _highlightedSubstatIndex == index;
 
     // パーセント表示判定
     final isPercentage =
@@ -1268,12 +1283,42 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         substat.propId != 'FIGHT_PROP_DEFENSE' &&
         substat.propId != 'FIGHT_PROP_HP';
 
-    final valueText = isPercentage
-        ? '${substat.statValue.toStringAsFixed(1)}%'
-        : substat.statValue.toStringAsFixed(0);
+    // 現在の強化レベルまでの累積値を計算
+    final currentArtifactLevel = _currentEnhancementLevel * 4; // 0,4,8,12,16,20
+    double displayValue = 0.0;
+    int visibleRolls = 0;
+    
+    for (int i = 0; i < substat.enhancementLevels.length; i++) {
+      if (substat.enhancementLevels[i] <= currentArtifactLevel) {
+        displayValue += substat.rollValues[i];
+        visibleRolls++;
+      } else {
+        break;
+      }
+    }
 
-    return Padding(
+    final valueText = isPercentage
+        ? '${displayValue.toStringAsFixed(1)}%'
+        : displayValue.toStringAsFixed(0);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: isHighlighted
+            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1312,13 +1357,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               ),
             ],
           ),
-          // 2行目: 強化回数と履歴（リッチなランク表示）
-          if (substat.rollValues.isNotEmpty)
+          // 2行目: 強化回数と履歴（現在のレベルまでのロールのみ表示）
+          if (visibleRolls > 0)
             Padding(
               padding: const EdgeInsets.only(left: 30, top: 2),
               child: Row(
                 children: [
-                  // 強化回数バッジ（SubstatDetailViewと同じスタイル）
+                  // 強化回数バッジ（現在表示中のロール数）
                   Container(
                     constraints: const BoxConstraints(minWidth: 32),
                     padding: const EdgeInsets.symmetric(
@@ -1334,7 +1379,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                       ),
                     ),
                     child: Text(
-                      '×${substat.totalUpgrades}',
+                      '×$visibleRolls',
                       style: TextStyle(
                         color: theme.brightness == Brightness.dark
                             ? const Color(0xFFE8C547)
@@ -1345,14 +1390,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // 強化履歴（リッチなランク表示）
+                  // 強化履歴（現在のレベルまでのロールのみ表示）
                   Expanded(
                     child: Wrap(
                       spacing: 4,
                       runSpacing: 2,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        for (int i = 0; i < substat.rollValues.length; i++) ...[
+                        for (int i = 0; i < visibleRolls; i++) ...[
                           if (i > 0)
                             Text(
                               '+',
@@ -1510,11 +1555,62 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       rebuildType: _selectedRebuildType!,
     );
 
-    // ローディング終了 & 結果を表示
+    // 結果を設定してアニメーション開始
+    // すべてのサブステータスを初期値で表示後、強化ロールごとにアニメーション
     setState(() {
       _simulationTrial = trial;
       _isCalculating = false;
+      _isAnimating = true;
+      _currentEnhancementLevel = 0; // 初期値から開始
+      _highlightedSubstatIndex = -1;
     });
+
+    // 5回の強化ロールをアニメーション表示（0.3秒間隔）
+    for (int rollLevel = 1; rollLevel <= 5; rollLevel++) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      // この強化レベルでどのサブステータスが強化されたかを判定
+      final enhancedIndex = _findEnhancedSubstatIndexForLevel(trial, rollLevel);
+      
+      setState(() {
+        _currentEnhancementLevel = rollLevel;
+        _highlightedSubstatIndex = enhancedIndex;
+      });
+
+      // ハイライトを0.2秒間表示
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      
+      setState(() {
+        _highlightedSubstatIndex = -1;
+      });
+    }
+
+    // アニメーション完了
+    setState(() {
+      _isAnimating = false;
+      _currentEnhancementLevel = 5; // 最終強化レベル
+    });
+  }
+
+  /// 指定した強化レベルで強化されたサブステータスのインデックスを返す
+  /// rollLevel: 1-5（+4, +8, +12, +16, +20に対応）
+  int _findEnhancedSubstatIndexForLevel(RebuildSimulationTrial trial, int rollLevel) {
+    // rollLevelを聖遺物の強化レベルに変換
+    // rollLevel 1 → +4, rollLevel 2 → +8, ... rollLevel 5 → +20
+    final artifactLevel = rollLevel * 4;
+    
+    // 各サブステータスのenhancementLevelsを確認して、該当レベルで強化されたものを探す
+    for (int i = 0; i < trial.newSubstats.length; i++) {
+      final substat = trial.newSubstats[i];
+      if (substat.enhancementLevels.contains(artifactLevel)) {
+        return i;
+      }
+    }
+    
+    // 該当なしの場合は最初のサブステータス（本来は起こらない）
+    return 0;
   }
 
   /// シミュレーションリセット
@@ -1528,6 +1624,10 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       _simulationTrial = null;
       _isRebuildTypeCollapsed = false;
       _isSubstatSelectionCollapsed = false;
+      // アニメーション状態もリセット
+      _isAnimating = false;
+      _currentEnhancementLevel = 0;
+      _highlightedSubstatIndex = -1;
     });
   }
 
@@ -1535,6 +1635,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   /// スコア計算対象が変更された際に、再構築後のサブステータスから新しいスコアを計算
   void _recalculateSimulationTrial() {
     if (_simulationTrial == null || _simulationResult == null) return;
+
+    // アニメーション状態をリセット（即座に全表示）
+    setState(() {
+      _isAnimating = false;
+      _currentEnhancementLevel = 5; // 最終強化レベルを表示
+      _highlightedSubstatIndex = -1;
+    });
 
     // 再構築後のサブステータスから新しいスコアを計算
     double newScore = 0.0;
