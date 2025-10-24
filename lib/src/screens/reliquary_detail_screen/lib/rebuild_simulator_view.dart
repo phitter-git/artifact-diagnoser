@@ -165,7 +165,10 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 Text(
                   '再構築シミュレーターについて',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontSize:
+                        (Theme.of(context).textTheme.titleMedium?.fontSize ??
+                            16) +
+                        2,
                   ),
                 ),
               ],
@@ -626,10 +629,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             const SizedBox(height: 8),
 
             // 現在のサブステータス表示
-            const Text(
-              '現在の聖遺物ステータス',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text('現在の聖遺物ステータス', style: TextStyle(fontSize: 18)),
             const SizedBox(height: 12),
             ...widget.summary.substats.map(
               (substat) => _buildCurrentSubstatView(substat),
@@ -743,7 +743,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               : const Icon(Icons.play_arrow, size: 24),
           label: Text(
             _isCalculating ? '計算中...' : '再構築を実行',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 20),
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -893,18 +893,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            '現在のスコア',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('現在のスコア', style: TextStyle(fontSize: 18)),
           Row(
             children: [
               Text(
                 score.toStringAsFixed(1),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 22),
               ),
               const SizedBox(width: 8),
               Container(
@@ -920,8 +914,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 child: Text(
                   rank,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                     color: _getScoreRankColor(rank),
                   ),
                 ),
@@ -1036,10 +1029,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                       : const Icon(Icons.refresh, size: 22),
                   label: Text(
                     _isCalculating ? '計算中...' : 'もう一度試す',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: const TextStyle(fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1060,10 +1050,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 child: OutlinedButton.icon(
                   onPressed: _isCalculating ? null : _resetSimulation,
                   icon: const Icon(Icons.close, size: 22),
-                  label: const Text(
-                    'リセット',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  label: const Text('リセット', style: TextStyle(fontSize: 16)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     minimumSize: const Size(0, 50),
@@ -1118,11 +1105,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           if (congratsMessage.isNotEmpty) ...[
             Text(
               congratsMessage,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.green.shade700,
-              ),
+              style: TextStyle(fontSize: 20, color: Colors.green.shade700),
             ),
             const SizedBox(height: 8),
           ],
@@ -1134,16 +1117,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '現在: ${_simulationResult!.currentScore.toStringAsFixed(1)}',
+                    '再構築前スコア: ${_simulationResult!.currentScore.toStringAsFixed(1)}',
                     style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'シミュレーション: ${trial.newScore.toStringAsFixed(1)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    '再構築後スコア: ${trial.newScore.toStringAsFixed(1)}',
+                    style: const TextStyle(fontSize: 18),
                   ),
                 ],
               ),
@@ -1158,11 +1138,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 ),
                 child: Text(
                   '${trial.scoreDiff >= 0 ? '+' : ''}${trial.scoreDiff.toStringAsFixed(1)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 20),
                 ),
               ),
             ],
@@ -1241,10 +1217,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
-          const Text(
-            '再構築シミュレーション結果',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('再構築シミュレーション結果', style: TextStyle(fontSize: 18)),
           const SizedBox(height: 8),
           ...trial.newSubstats.map(
             (substat) => _buildSimulationSubstatView(substat),
@@ -1465,11 +1438,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           ),
           child: Text(
             rank,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 13, color: Colors.white),
           ),
         ),
       ],
