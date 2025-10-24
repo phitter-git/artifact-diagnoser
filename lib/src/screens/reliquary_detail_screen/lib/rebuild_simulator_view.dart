@@ -52,13 +52,16 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   // 再構築種別選択の折りたたみ状態
   bool _isRebuildTypeCollapsed = false;
 
-  // 希望サブオプション選択の折りたたみ状態
+  // 追加ステータス選択の折りたたみ状態
   bool _isSubstatSelectionCollapsed = false;
 
   // アニメーション関連
   bool _isAnimating = false; // アニメーション実行中フラグ
   int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
   int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
+
+  // 再構築試行回数カウンター
+  int _rebuildAttemptCount = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -136,7 +139,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 const SizedBox(height: 8),
               ],
 
-              // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
+              // ① 追加ステータス選択（2つ選択前のみ展開、選択後は折りたたむ）
               if (_isSubstatSelectionCollapsed)
                 _buildSubstatSelectionCollapsed()
               else
@@ -201,35 +204,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               title: '何度でもシミュレーション',
               description: '聖啓の塵を消費せず何度もつよくてニューゲーム',
             ),
-            // const SizedBox(height: 16),
-            // Container(
-            //   padding: const EdgeInsets.all(12),
-            //   decoration: BoxDecoration(
-            //     color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-            //     borderRadius: BorderRadius.circular(8),
-            //     border: Border.all(
-            //       color: Theme.of(context).dividerColor,
-            //     ),
-            //   ),
-            //   child: Row(
-            //     children: [
-            //       Icon(
-            //         Icons.arrow_downward,
-            //         size: 20,
-            //         color: Theme.of(context).colorScheme.primary,
-            //       ),
-            //       const SizedBox(width: 8),
-            //       Expanded(
-            //         child: Text(
-            //           'まずは希望サブオプションを2つ選択してください',
-            //           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            //             fontWeight: FontWeight.w500,
-            //           ),
-            //         ),
-            //       ),
-            //     ],
-            //   ),
-            // ),
           ],
         ),
       ),
@@ -283,7 +257,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('希望サブオプションを選択（2つ選択必須）', style: TextStyle(fontSize: 16)),
+            const Text('追加ステータスを選択（2つ選択必須）', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 12),
             ...widget.summary.substats.map((substat) {
               final isSelected = _selectedSubstatIds.contains(substat.propId);
@@ -1109,17 +1083,25 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
   /// スコア比較表示
   Widget _buildScoreComparison(RebuildSimulationTrial trial) {
-    // お祝いメッセージ
-    String congratsMessage = '';
-    // if (trial.isImproved) {
-    //   if (trial.scoreDiff >= 10.0) {
-    //     congratsMessage = '🎉 大成功！';
-    //   } else if (trial.scoreDiff >= 5.0) {
-    //     congratsMessage = '✨ 素晴らしい！';
-    //   } else {
-    //     congratsMessage = '👍 改善！';
-    //   }
-    // }
+    final oldScore = _simulationResult!.currentScore;
+    final newScore = trial.newScore;
+    final scoreDiff = trial.scoreDiff;
+    final rebuildTypeLabel = _selectedRebuildType!.label;
+
+    // スコア更新時メッセージを生成
+    String updateMessage = '';
+    if (trial.isImproved) {
+      // 理論値到達判定（理論最大スコアと同等またはそれ以上）
+      final theoreticalMax = _simulationResult!.theoreticalMaxScore;
+      if (newScore >= theoreticalMax - 0.1) {
+        // 誤差を考慮して0.1以内なら理論値とみなす
+        updateMessage =
+            '${_rebuildAttemptCount}回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！';
+      } else {
+        updateMessage =
+            '${_rebuildAttemptCount}回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新しました！';
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -1136,48 +1118,60 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // お祝いメッセージ
-          if (congratsMessage.isNotEmpty) ...[
-            Text(
-              congratsMessage,
-              style: TextStyle(fontSize: 20, color: Colors.green.shade700),
-            ),
-            const SizedBox(height: 8),
-          ],
           // スコア表示
+          Text(
+            '再構築前スコア: ${oldScore.toStringAsFixed(1)}',
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '再構築前スコア: ${_simulationResult!.currentScore.toStringAsFixed(1)}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '再構築後スコア: ${trial.newScore.toStringAsFixed(1)}',
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                ],
+              Text(
+                '再構築後スコア: ${newScore.toStringAsFixed(1)}',
+                style: const TextStyle(fontSize: 18),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: trial.isImproved ? Colors.green : Colors.red,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '${trial.scoreDiff >= 0 ? '+' : ''}${trial.scoreDiff.toStringAsFixed(1)}',
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                  '${scoreDiff >= 0 ? '+' : ''}${scoreDiff.toStringAsFixed(1)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
             ],
           ),
+          // スコア更新時メッセージ
+          if (updateMessage.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      updateMessage,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1249,7 +1243,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               ),
             ],
           ),
-          const SizedBox(height: 12),
           const Divider(),
           const SizedBox(height: 8),
           const Text('シミュレーション結果', style: TextStyle(fontSize: 18)),
@@ -1289,7 +1282,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   Widget _buildSimulationSubstatView(SubstatSummary substat, int index) {
     final theme = Theme.of(context);
 
-    // 希望サブオプション判定: ユーザーが選択した2つのサブオプションのみ
+    // 追加ステータス判定: ユーザーが選択した2つのサブオプションのみ
     final isDesiredSubstat = _selectedSubstatIds.contains(substat.propId);
 
     // ハイライト判定
@@ -1321,7 +1314,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         : displayValue.toStringAsFixed(0);
 
     // ハイライト時の色と強度を決定
-    // 希望サブオプション（_selectedSubstatIds内の2つ）: 白く光る
+    // 追加ステータス（_selectedSubstatIds内の2つ）: 白く光る
     // それ以外: かなり弱めに白く光る（ハズレ感）
     final highlightColor = Colors.white.withValues(alpha: 0.3);
     final highlightAlpha = isDesiredSubstat ? 0.25 : 0.08;
@@ -1350,7 +1343,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           // 1行目: マーカー、ステータス名、現在値
           Row(
             children: [
-              // マーカー（希望サブオプションは●、それ以外は○）
+              // マーカー（追加ステータスは●、それ以外は○）
               Text(
                 isDesiredSubstat ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
@@ -1542,7 +1535,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     // ローディング時間（0.6秒）
     await Future.delayed(const Duration(milliseconds: 600));
 
-    // ユーザーが選択した希望サブオプションからprimaryとsecondaryを取得
+    // ユーザーが選択した追加ステータスからprimaryとsecondaryを取得
     final selectedSubstats = widget.summary.substats
         .where((s) => _selectedSubstatIds.contains(s.propId))
         .toList();
@@ -1588,6 +1581,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       _isAnimating = true;
       _currentEnhancementLevel = 0; // 初期値から開始
       _highlightedSubstatIndex = -1;
+      _rebuildAttemptCount++; // 試行回数をカウントアップ
     });
 
     // 5回の強化ロールをアニメーション表示（0.3秒間隔）
@@ -1644,7 +1638,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   /// シミュレーションリセット
   void _resetSimulation() {
     setState(() {
-      // 希望サブオプション選択まで戻る
+      // 追加ステータス選択まで戻る
       _selectedSubstatIds.clear();
       _selectedRebuildType = null;
       _simulationResult = null;
@@ -1656,6 +1650,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       _isAnimating = false;
       _currentEnhancementLevel = 0;
       _highlightedSubstatIndex = -1;
+      // 試行回数もリセット
+      _rebuildAttemptCount = 0;
     });
   }
 
@@ -1729,7 +1725,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         baseInfo: baseInfo,
         rebuildType: type,
         scoreTargetPropIds: widget.scoreTargetPropIds,
-        desiredSubstatIds: _selectedSubstatIds, // ユーザーが選択した希望サブオプション
+        desiredSubstatIds: _selectedSubstatIds, // ユーザーが選択した追加ステータス
       );
       newUpdateRates[type] = updateRate;
     }
