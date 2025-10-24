@@ -546,11 +546,22 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
         // 実行ボタン（大きめサイズ、コントラスト強化）
         ElevatedButton.icon(
-          onPressed: _executeSimulation,
-          icon: const Icon(Icons.play_arrow, size: 24),
-          label: const Text(
-            '再構築を実行',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          onPressed: _isCalculating ? null : _executeSimulation,
+          icon: _isCalculating
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                )
+              : const Icon(Icons.play_arrow, size: 24),
+          label: Text(
+            _isCalculating ? '計算中...' : '再構築を実行',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -828,11 +839,25 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _executeSimulation,
-                  icon: const Icon(Icons.refresh, size: 22),
-                  label: const Text(
-                    'もう一度試す',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  onPressed: _isCalculating ? null : _executeSimulation,
+                  icon: _isCalculating
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.refresh, size: 22),
+                  label: Text(
+                    _isCalculating ? '計算中...' : 'もう一度試す',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -851,7 +876,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: _resetSimulation,
+                  onPressed: _isCalculating ? null : _resetSimulation,
                   icon: const Icon(Icons.close, size: 22),
                   label: const Text(
                     'リセット',
@@ -1278,15 +1303,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   }
 
   /// シミュレーション実行
-  void _executeSimulation() {
+  Future<void> _executeSimulation() async {
     if (_simulationResult == null || _selectedRebuildType == null) return;
+
+    // ローディング開始
+    setState(() {
+      _isCalculating = true;
+    });
+
+    // ローディング時間（0.6秒）
+    await Future.delayed(const Duration(milliseconds: 600));
 
     // ユーザーが選択した希望サブオプションからprimaryとsecondaryを取得
     final selectedSubstats = widget.summary.substats
         .where((s) => _selectedSubstatIds.contains(s.propId))
         .toList();
 
-    if (selectedSubstats.length != 2) return;
+    if (selectedSubstats.length != 2) {
+      setState(() {
+        _isCalculating = false;
+      });
+      return;
+    }
 
     // 優先度順にソート（高い方がprimary）
     selectedSubstats.sort((a, b) {
@@ -1314,15 +1352,24 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       rebuildType: _selectedRebuildType!,
     );
 
+    // ローディング終了 & 結果を表示
     setState(() {
       _simulationTrial = trial;
+      _isCalculating = false;
     });
   }
 
   /// シミュレーションリセット
   void _resetSimulation() {
     setState(() {
+      // 希望サブオプション選択まで戻る
+      _selectedSubstatIds.clear();
+      _selectedRebuildType = null;
+      _simulationResult = null;
+      _updateRates.clear();
       _simulationTrial = null;
+      _isRebuildTypeCollapsed = false;
+      _isSubstatSelectionCollapsed = false;
     });
   }
 
