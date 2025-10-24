@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // 聖遺物一覧画面に遷移（userDataを渡す）
       Navigator.pushNamed(
         context,
-        '/reliquary-list',
+        '/artifact-list',
         arguments: {'uid': uid, 'userData': userData},
       );
     } on UserDataServiceException catch (e) {
@@ -121,10 +121,20 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // タイトル
-                Text(
-                  '聖遺物診断機',
-                  style: Theme.of(context).textTheme.displaySmall,
-                  textAlign: TextAlign.center,
+                Column(
+                  children: [
+                    Text(
+                      '聖遺物診断機',
+                      style: Theme.of(context).textTheme.displaySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '再構築シミュレーター',
+                      style: Theme.of(context).textTheme.labelLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

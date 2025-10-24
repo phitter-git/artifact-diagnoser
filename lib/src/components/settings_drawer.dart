@@ -68,8 +68,8 @@ class SettingsDrawer extends StatelessWidget {
             onTap: () {
               showLicensePage(
                 context: context,
-                applicationName: '聖遺物診断機',
-                applicationVersion: '0.1.0',
+                applicationName: '聖遺物診断機 - 再構築シミュレーター',
+                applicationVersion: '1.0.0',
               );
             },
           ),

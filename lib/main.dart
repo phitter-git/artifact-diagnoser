@@ -49,7 +49,7 @@ class MainApp extends StatelessWidget {
         builder: (context, _) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: '聖遺物診断機',
+            title: '聖遺物診断機 - 再構築シミュレーター',
             themeMode: themeService.themeMode,
             theme: ThemeData(
               useMaterial3: true,
@@ -74,7 +74,7 @@ class MainApp extends StatelessWidget {
             initialRoute: '/',
             routes: {
               '/': (context) => const HomeScreen(),
-              '/reliquary-list': (context) => const ReliquaryListScreen(),
+              '/artifact-list': (context) => const ReliquaryListScreen(),
             },
           );
         },
