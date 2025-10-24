@@ -363,15 +363,16 @@ class RebuildSimulatorService {
     // 6. 最低保証回数を取得
     final forcedCount = _getForcedCount(rebuildType);
 
-    // 7. 希望サブオプション（primary + secondary）に最低保証回数を割り当て
+    // 7. 希望サブオプション（primary + secondary）に最低保証回数をランダムに割り当て
+    // 注: ゲーム内の仕様では、保証回数内でもA/Bのどちらに偏るかはランダム
     final guaranteedEnhancements = <String>[];
-    // primaryに優先的に割り当て
+    final guaranteedCandidates = [
+      primarySubstat.propId,
+      secondarySubstat.propId,
+    ];
     for (int i = 0; i < forcedCount && i < remainingEnhancements; i++) {
-      if (i % 2 == 0) {
-        guaranteedEnhancements.add(primarySubstat.propId);
-      } else {
-        guaranteedEnhancements.add(secondarySubstat.propId);
-      }
+      final selectedPropId = guaranteedCandidates[random.nextInt(2)];
+      guaranteedEnhancements.add(selectedPropId);
     }
 
     // 8. 残りの強化回数をランダム割り当て
