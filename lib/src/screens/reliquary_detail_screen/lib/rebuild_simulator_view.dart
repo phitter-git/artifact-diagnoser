@@ -85,7 +85,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin用
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -444,27 +444,33 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       color: Theme.of(context).cardColor,
       elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(2.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ヘッダー
-            Row(
-              children: [
-                const Icon(Icons.casino, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '再構築シミュレーション結果',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+            // ヘッダー（余白あり）
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14.0, 14.0, 14.0, 8.0),
+              child: Row(
+                children: [
+                  const Icon(Icons.casino, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    '再構築シミュレーション結果',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
 
+            // 結果表示（余白なし）
             _buildSimulationResult(),
+
+            // 下部余白のみ
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -496,7 +502,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         ),
         const SizedBox(height: 12),
 
-        // 実行ボタン（大きめサイズ）
+        // 実行ボタン（大きめサイズ、コントラスト強化）
         ElevatedButton.icon(
           onPressed: _executeSimulation,
           icon: const Icon(Icons.play_arrow, size: 24),
@@ -507,6 +513,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             minimumSize: const Size(200, 56),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            elevation: 4,
           ),
         ),
       ],
@@ -762,47 +771,66 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // スコア比較
-        _buildScoreComparison(trial),
-        const SizedBox(height: 8),
-
-        // サブステータス一覧
+        // サブステータス一覧（左右余白なし）
         _buildSubstatsList(trial),
         const SizedBox(height: 8),
 
-        // アクションボタン（大きめサイズ）
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _executeSimulation,
-                icon: const Icon(Icons.refresh, size: 22),
-                label: const Text(
-                  'もう一度試す',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(0, 50),
+        // スコア比較（左右余白なし）
+        _buildScoreComparison(trial),
+        const SizedBox(height: 8),
+
+        // アクションボタン（横余白のみ追加）
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _executeSimulation,
+                  icon: const Icon(Icons.refresh, size: 22),
+                  label: const Text(
+                    'もう一度試す',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size(0, 50),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.1),
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _resetSimulation,
-                icon: const Icon(Icons.close, size: 22),
-                label: const Text(
-                  'リセット',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(0, 50),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _resetSimulation,
+                  icon: const Icon(Icons.close, size: 22),
+                  label: const Text(
+                    'リセット',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size(0, 50),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.1),
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
+                      width: 2,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
