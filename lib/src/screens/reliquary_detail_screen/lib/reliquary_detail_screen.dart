@@ -353,9 +353,8 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
             Text(
               '優先: ${result.primarySubstat.label}（残り${result.remainingEnhancements}回強化）',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 16,
                 color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),

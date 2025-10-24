@@ -167,8 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: Text(
                                 '聖遺物の初期値・強化履歴を詳細分析',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w500),
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                           ],
@@ -185,8 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Expanded(
                               child: Text(
                                 '「聖啓の塵」の再構築を何度でもシミュレーション',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w500),
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                           ],
@@ -202,9 +200,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '再構築のスコア更新率を自動計算して最適な投資先を判断',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w500),
+                                '再構築のスコア更新率を確認して最適な投資先を判断',
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                           ],

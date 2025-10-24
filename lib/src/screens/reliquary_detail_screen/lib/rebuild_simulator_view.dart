@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'dart:ui' as ui;
+import 'dart:js_interop';
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
@@ -32,6 +35,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     with AutomaticKeepAliveClientMixin {
   final _simulatorService = RebuildSimulatorService();
   final _scrollController = ScrollController();
+  final _screenshotKey = GlobalKey();
 
   // 選択された2つのサブステータスのpropId
   final Set<String> _selectedSubstatIds = {};
@@ -187,13 +191,19 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 12),
-                Text(
-                  '再構築シミュレーターについて',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize:
-                        (Theme.of(context).textTheme.titleMedium?.fontSize ??
-                            16) +
-                        2,
+                Expanded(
+                  child: Text(
+                    '再構築シミュレーターについて',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize:
+                          (Theme.of(context).textTheme.titleMedium?.fontSize ??
+                              16) +
+                          2,
+                    ),
+                    softWrap: true,
+                    // 小さい画面でも折り返して表示する（必要なら行数制限を追加）
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -201,19 +211,19 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             const SizedBox(height: 16),
             _buildFeatureRow(
               icon: Icons.auto_fix_high,
-              title: '「聖啓の塵」の活用を支援',
-              description: '再構築すべき聖遺物かどうかの判断材料を提供',
+              title: '「聖啓の塵」の使用を支援',
+              description: '再構築すべき聖遺物かどうかの判断材料の一つに',
             ),
             const SizedBox(height: 12),
             _buildFeatureRow(
               icon: Icons.calculate_outlined,
               title: 'スコア更新率を自動計算',
-              description: '現在のスコアを超える確率を3種類の再構築タイプごとに表示',
+              description: '現在のスコアから更新する確率を再構築タイプごとに表示',
             ),
             const SizedBox(height: 12),
             _buildFeatureRow(
               icon: Icons.replay,
-              title: '何度でもシミュレーション',
+              title: '何度でもシミュレーション！',
               description: '聖啓の塵を消費せず何度もつよくてニューゲーム',
             ),
           ],
@@ -237,12 +247,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
+              Text(title, style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 2),
               Text(
                 description,
@@ -743,6 +748,33 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         ),
         const SizedBox(height: 12),
 
+        // アニメーション有効化チェックボックス
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Checkbox(
+              value: _isAnimationEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _isAnimationEnabled = value ?? true;
+                });
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isAnimationEnabled = !_isAnimationEnabled;
+                });
+              },
+              child: const Text('演出を有効化', style: TextStyle(fontSize: 12)),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
         // 実行ボタン（大きめサイズ、コントラスト強化）
         ElevatedButton.icon(
           onPressed: _isCalculating ? null : _executeSimulation,
@@ -769,32 +801,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             foregroundColor: Theme.of(context).colorScheme.onPrimary,
             elevation: 4,
           ),
-        ),
-
-        // アニメーション有効化チェックボックス
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Checkbox(
-              value: _isAnimationEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _isAnimationEnabled = value ?? true;
-                });
-              },
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _isAnimationEnabled = !_isAnimationEnabled;
-                });
-              },
-              child: const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
-            ),
-          ],
         ),
       ],
     );
@@ -1052,15 +1058,27 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // サブステータス一覧
-        _buildSubstatsList(trial),
+        // スクリーンショット対象エリア（サブステータス一覧 + スコア比較）
+        RepaintBoundary(
+          key: _screenshotKey,
+          child: Container(
+            color: Theme.of(context).cardColor,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // サブステータス一覧
+                _buildSubstatsList(trial),
 
-        // アニメーション完了後のみスコア比較を表示
-        if (!_isAnimating) ...[
-          const SizedBox(height: 8),
-          // スコア比較
-          _buildScoreComparison(trial),
-        ],
+                // アニメーション完了後のみスコア比較を表示
+                if (!_isAnimating) ...[
+                  const SizedBox(height: 8),
+                  // スコア比較
+                  _buildScoreComparison(trial),
+                ],
+              ],
+            ),
+          ),
+        ),
 
         // アニメーション完了後のみボタンを表示
         if (!_isAnimating) ...[
@@ -1088,10 +1106,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                       _isAnimationEnabled = !_isAnimationEnabled;
                     });
                   },
-                  child: const Text(
-                    'アニメーションを有効化',
-                    style: TextStyle(fontSize: 12),
-                  ),
+                  child: const Text('演出を有効化', style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),
@@ -1168,6 +1183,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 children: [
+                  // 画像保存ボタン
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _captureAndDownload,
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('画像保存', style: TextStyle(fontSize: 14)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary.withValues(alpha: 0.1),
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary,
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.secondary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   // Xへ投稿ボタン
                   Expanded(
                     child: OutlinedButton.icon(
@@ -1848,6 +1885,63 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     });
   }
 
+  /// スクリーンショットを撮影して画像をダウンロード
+  Future<void> _captureAndDownload() async {
+    try {
+      final boundary =
+          _screenshotKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('画像の取得に失敗しました')));
+        }
+        return;
+      }
+
+      // 高解像度で画像をキャプチャ
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('画像の生成に失敗しました')));
+        }
+        return;
+      }
+
+      // Uint8Listに変換
+      final bytes = byteData.buffer.asUint8List();
+
+      // Blobを作成してダウンロード
+      final blob = web.Blob(
+        [bytes.toJS].toJS,
+        web.BlobPropertyBag(type: 'image/png'),
+      );
+      final url = web.URL.createObjectURL(blob);
+      final anchor = web.HTMLAnchorElement()
+        ..href = url
+        ..download =
+            'rebuild_result_${DateTime.now().millisecondsSinceEpoch}.png';
+      anchor.click();
+      web.URL.revokeObjectURL(url);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('画像を保存しました')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('画像の保存に失敗しました: $e')));
+      }
+    }
+  }
+
   /// Xへのリンク共有
   Future<void> _shareToX() async {
     try {
@@ -1862,22 +1956,64 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       final theoreticalMax = _simulationResult!.theoreticalMaxScore;
       final isTheoreticalMax = newScore >= theoreticalMax - 0.1;
 
+      // 聖遺物情報を取得
+      final equipTypeLabel = widget.summary.equipTypeLabel;
+      final mainPropLabel = widget.summary.mainPropLabel;
+      final mainStatValue = widget.summary.mainStatValue;
+
+      // メインステータス表示値の取得
+      String getMainStatDisplayValue() {
+        if (mainStatValue == null) return '';
+
+        // メインステータスがパーセント表示が必要か判定
+        final propId = widget.summary.mainPropId;
+        if (propId != null && _isPercentageStat(propId)) {
+          return '${mainStatValue.toStringAsFixed(1)}%';
+        }
+        return mainStatValue.toStringAsFixed(0);
+      }
+
+      // 再構築結果のサブステータス情報を生成
+      final substatInfo = trial.newSubstats
+          .map((substat) {
+            // パーセント表示判定
+            final isPercentage =
+                substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
+                substat.propId != 'FIGHT_PROP_ATTACK' &&
+                substat.propId != 'FIGHT_PROP_DEFENSE' &&
+                substat.propId != 'FIGHT_PROP_HP';
+
+            final valueText = isPercentage
+                ? '${substat.statValue.toStringAsFixed(1)}%'
+                : substat.statValue.toStringAsFixed(0);
+
+            return '○ ${substat.label} $valueText';
+          })
+          .join('\n');
+
       late String text;
       if (isTheoreticalMax) {
         text =
             '$_rebuildAttemptCount回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！\n'
-            'スコアは${newScore.toStringAsFixed(1)}！\n'
+            '$equipTypeLabel / $mainPropLabel ${getMainStatDisplayValue()}\n'
+            '$substatInfo\n'
+            'スコア: ${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}\n'
             '#再構築シミュレータ #原神';
       } else {
         text =
             '$_rebuildAttemptCount回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新！\n'
-            'スコアは${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}！\n'
+            '$equipTypeLabel / $mainPropLabel ${getMainStatDisplayValue()}\n'
+            '$substatInfo\n'
+            'スコア: ${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}\n'
             '#再構築シミュレータ #原神';
       }
 
       // XのWeb Intent URLを開く
       final encodedText = Uri.encodeComponent(text);
-      final xUrl = 'https://x.com/intent/tweet?text=$encodedText';
+      final homeUrl = Uri.encodeComponent(
+        'https://artifact-diagnoser.vercel.app/',
+      );
+      final xUrl = 'https://x.com/intent/tweet?text=$encodedText&url=$homeUrl';
       web.window.open(xUrl, '_blank');
 
       if (mounted) {
