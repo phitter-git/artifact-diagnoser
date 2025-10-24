@@ -27,7 +27,8 @@ class RebuildSimulatorView extends StatefulWidget {
   State<RebuildSimulatorView> createState() => _RebuildSimulatorViewState();
 }
 
-class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
+class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
+    with AutomaticKeepAliveClientMixin {
   final _simulatorService = RebuildSimulatorService();
 
   // 選択された2つのサブステータスのpropId
@@ -51,8 +52,22 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   // 再構築種別選択の折りたたみ状態
   bool _isRebuildTypeCollapsed = false;
 
-  // 希望サブオプション選択の折りたたみ状態
+  // 追加ステータス選択の折りたたみ状態
   bool _isSubstatSelectionCollapsed = false;
+
+  // アニメーション関連
+  bool _isAnimating = false; // アニメーション実行中フラグ
+  int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
+  int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
+
+  // アニメーション有効化フラグ
+  bool _isAnimationEnabled = true;
+
+  // 再構築試行回数カウンター
+  int _rebuildAttemptCount = 0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   /// 選択されたサブステータスのラベルをカンマ区切りで取得
   String _getSelectedSubstatLabels() {
@@ -66,57 +81,172 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   }
 
   @override
+  void didUpdateWidget(RebuildSimulatorView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // スコア計算対象が変更された場合、結果を再計算（入力は保持）
+    if (oldWidget.scoreTargetPropIds != widget.scoreTargetPropIds &&
+        _simulationResult != null) {
+      // 現在の選択状態で再計算
+      _recalculate();
+
+      // シミュレーション結果がある場合、再構築後のスコアも再計算
+      if (_simulationTrial != null) {
+        _recalculateSimulationTrial();
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
-          if (_isSubstatSelectionCollapsed)
-            _buildSubstatSelectionCollapsed()
-          else
-            _buildSubstatSelection(),
-          const SizedBox(height: 8),
+    super.build(context); // AutomaticKeepAliveClientMixin用
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ③ 再構築シミュレーション結果（実行後に最上部に表示）
+              if (_selectedRebuildType != null &&
+                  _isRebuildTypeCollapsed &&
+                  _simulationTrial != null) ...[
+                _buildSimulationResultCard(),
+                const SizedBox(height: 8),
+              ],
 
-          // ② 再構築種別選択（2つ選択後に表示）
-          if (_selectedSubstatIds.length == 2) ...[
-            if (_isCalculating && _updateRates.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_isRebuildTypeCollapsed && _selectedRebuildType != null)
-              _buildRebuildTypeSelectionCollapsed()
-            else
-              _buildRebuildTypeSelection(),
-            const SizedBox(height: 8),
-          ],
+              // ④ 再構築シミュレーション操作カード（種別選択後に表示、結果がない場合のみ）
+              if (_selectedRebuildType != null &&
+                  _isRebuildTypeCollapsed &&
+                  _simulationTrial == null) ...[
+                _buildSimulationControlCard(),
+                const SizedBox(height: 8),
+              ],
 
-          // ③ 再構築シミュレーションカード（種別選択後に表示）
-          if (_selectedRebuildType != null && _isRebuildTypeCollapsed) ...[
-            _buildSimulationCard(),
-            const SizedBox(height: 8),
-          ],
+              // ② 再構築種別選択（2つ選択後に表示）
+              if (_selectedSubstatIds.length == 2) ...[
+                if (_isCalculating && _updateRates.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_isRebuildTypeCollapsed &&
+                    _selectedRebuildType != null)
+                  _buildRebuildTypeSelectionCollapsed()
+                else
+                  _buildRebuildTypeSelection(),
+                const SizedBox(height: 8),
+              ],
 
-          // ④ 理論最大値（2つ選択後に表示）
-          if (_selectedSubstatIds.length == 2) ...[
-            if (_isCalculating)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_simulationResult != null) ...[
-              _buildTheoreticalMaxSection(),
+              // ① 追加ステータス選択（2つ選択前のみ展開、選択後は折りたたむ）
+              if (_isSubstatSelectionCollapsed)
+                _buildSubstatSelectionCollapsed()
+              else
+                _buildSubstatSelection(),
               const SizedBox(height: 8),
+
+              // 説明カード（常に表示）
+              _buildIntroductionCard(),
             ],
-          ],
-        ],
+          ),
+        ),
       ),
+    );
+  }
+
+  /// 説明カード（初回表示時）
+  Widget _buildIntroductionCard() {
+    return Card(
+      elevation: 2,
+      color: Theme.of(
+        context,
+      ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 24,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '再構築シミュレーターについて',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize:
+                        (Theme.of(context).textTheme.titleMedium?.fontSize ??
+                            16) +
+                        2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildFeatureRow(
+              icon: Icons.auto_fix_high,
+              title: '「聖啓の塵」の活用を支援',
+              description: '再構築すべき聖遺物かどうかの判断材料を提供',
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureRow(
+              icon: Icons.calculate_outlined,
+              title: 'スコア更新率を自動計算',
+              description: '現在のスコアを超える確率を3種類の再構築タイプごとに表示',
+            ),
+            const SizedBox(height: 12),
+            _buildFeatureRow(
+              icon: Icons.replay,
+              title: '何度でもシミュレーション',
+              description: '聖啓の塵を消費せず何度もつよくてニューゲーム',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 機能説明行
+  Widget _buildFeatureRow({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -130,7 +260,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('希望サブオプションを選択（2つ選択必須）', style: TextStyle(fontSize: 16)),
+            const Text('追加ステータスを選択（2つ選択必須）', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 12),
             ...widget.summary.substats.map((substat) {
               final isSelected = _selectedSubstatIds.contains(substat.propId);
@@ -144,7 +274,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                   ? '${substat.statValue.toStringAsFixed(1)}%'
                   : substat.statValue.toStringAsFixed(0);
               return CheckboxListTile(
-                title: Text(substat.label),
+                title: Row(
+                  children: [
+                    // サブオプションアイコン
+                    Image.asset(
+                      'assets/image/${substat.propId}.webp',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const SizedBox(width: 24, height: 24);
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    // サブオプション名
+                    Expanded(
+                      child: Text(
+                        substat.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
                 subtitle: Text(
                   '$valueText (×${substat.totalUpgrades}回)',
                   style: TextStyle(
@@ -226,7 +377,29 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
+            Row(
+              children: [
+                const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 4),
+                Tooltip(
+                  message:
+                      '※更新率はモンテカルロ法(N=200k)による計算結果です。\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                  padding: const EdgeInsets.all(12),
+                  textStyle: const TextStyle(fontSize: 12, color: Colors.white),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.help_outline,
+                    size: 18,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             RadioGroup<RebuildType>(
               onChanged: (value) {
@@ -361,149 +534,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   // }
 
   /// 理論最大値セクション
-  Widget _buildTheoreticalMaxSection() {
-    final result = _simulationResult!;
-
-    return Card(
-      color: Theme.of(context).cardColor,
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.trending_up, size: 20),
-                SizedBox(width: 8),
-                Text('理論最大値（選択サブオプション）', style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '優先: ${result.primarySubstat.label}（残り${result.remainingEnhancements}回強化）',
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...result.allSubstats.map((substat) {
-              final theoreticalValue =
-                  result.theoreticalValues[substat.propId] ?? 0.0;
-              final isSelected = _selectedSubstatIds.contains(substat.propId);
-              final isTarget = widget.scoreTargetPropIds.contains(
-                substat.propId,
-              );
-              final isPrimary = substat.propId == result.primarySubstat.propId;
-
-              // 実数値(攻撃力、防御力、HP、元素熟知)は%なし、その他は%あり
-              final hasPercent =
-                  substat.propId != 'FIGHT_PROP_ELEMENT_MASTERY' &&
-                  substat.propId != 'FIGHT_PROP_ATTACK' &&
-                  substat.propId != 'FIGHT_PROP_DEFENSE' &&
-                  substat.propId != 'FIGHT_PROP_HP';
-
-              String explanation = '';
-              if (isPrimary) {
-                final initial = substat.rollValues[0];
-                final max = substat.maxRollValue;
-                if (hasPercent) {
-                  explanation =
-                      '(初期値 ${initial.toStringAsFixed(1)}% + 最大値${max.toStringAsFixed(1)}% × ${result.remainingEnhancements}回)';
-                } else {
-                  explanation =
-                      '(初期値 ${initial.toStringAsFixed(0)} + 最大値${max.toStringAsFixed(0)} × ${result.remainingEnhancements}回)';
-                }
-              } else if (isSelected) {
-                explanation = '(初期値のみ)';
-              } else {
-                explanation = '(初期値)';
-              }
-
-              final valueText = hasPercent
-                  ? '${theoreticalValue.toStringAsFixed(1)}%'
-                  : theoreticalValue.toStringAsFixed(0);
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '• ${substat.label}: ',
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isTarget
-                                ? null
-                                : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withValues(alpha: 0.65) ??
-                                      Colors.black54),
-                          ),
-                        ),
-                        Text(
-                          valueText,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isTarget
-                                ? null
-                                : (Theme.of(context).textTheme.bodyLarge?.color
-                                          ?.withValues(alpha: 0.65) ??
-                                      Colors.black54),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      '  $explanation',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color:
-                            Theme.of(context).textTheme.bodySmall?.color ??
-                            Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-            const Divider(height: 24),
-            Text(
-              '再構築前スコア: ${result.currentScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '理論スコア: ${result.theoreticalMaxScore.toStringAsFixed(1)}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            if (result.isUpdatePossible)
-              Text(
-                '(${result.scoreIncrease >= 0 ? '+' : ''}${result.scoreIncrease.toStringAsFixed(1)})',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: result.scoreIncrease > 0 ? Colors.green : Colors.red,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // /// 更新率セクション（非表示、ラジオボタンに統合済み）
-  // Widget _buildUpdateRateSection() { ... }
-
-  // /// 更新率に応じた色を取得（非表示、ラジオボタンに統合済み）
-  // Color _getUpdateRateColor(double rate) { ... }
-
   /// 再構築種別選択UI（折りたたみ時）
   Widget _buildRebuildTypeSelectionCollapsed() {
     return Card(
@@ -536,42 +566,21 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     );
   }
 
-  /// 再構築シミュレーションカード
-  Widget _buildSimulationCard() {
-    // 実行前: 現在のステータス + 更新率 + 実行ボタン
-    if (_simulationTrial == null) {
-      return Card(
-        color: Theme.of(context).cardColor,
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 現在のサブステータス表示
-              const Text(
-                '現在の聖遺物ステータス',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              ...widget.summary.substats.map(
-                (substat) => _buildCurrentSubstatView(substat),
-              ),
-              const SizedBox(height: 12),
+  /// 再構築シミュレーション操作カード（実行ボタン付き）
+  Widget _buildSimulationControlCard() {
+    // メインステータスの表示値を取得
+    String getMainStatDisplayValue() {
+      final value = widget.summary.mainStatValue;
+      if (value == null) return '';
 
-              // 現在のスコア表示
-              _buildCurrentScoreDisplay(),
-              const SizedBox(height: 16),
-
-              // 更新率と実行ボタン
-              _buildExecutionPrompt(),
-            ],
-          ),
-        ),
-      );
+      // メインステータスがパーセント表示が必要か判定
+      final propId = widget.summary.mainPropId;
+      if (propId != null && _isPercentageStat(propId)) {
+        return '${value.toStringAsFixed(1)}%';
+      }
+      return value.toStringAsFixed(0);
     }
 
-    // 実行後: 結果表示
     return Card(
       color: Theme.of(context).cardColor,
       elevation: 2,
@@ -580,23 +589,88 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ヘッダー
+            // 聖遺物ヘッダー（アイコン + 部位 + メインステータス）
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.casino, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '再構築シミュレーション結果',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                // アイコン
+                if (widget.summary.iconAssetPath != null)
+                  Image.asset(
+                    widget.summary.iconAssetPath!,
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.contain,
+                  ),
+                const SizedBox(width: 12),
+                // 部位名とメインステータス
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // 部位名
+                      Text(
+                        widget.summary.equipTypeLabel,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.normal,
+                              color: Colors.grey[600],
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      // メインステータス
+                      Text(
+                        '${widget.summary.mainPropLabel} ${getMainStatDisplayValue()}',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.normal,
+                              fontSize: 16,
+                            ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // 現在のサブステータス表示
+            const Text('現在の聖遺物ステータス', style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 12),
+            ...widget.summary.substats.map(
+              (substat) => _buildCurrentSubstatView(substat),
+            ),
+            const SizedBox(height: 12),
+
+            // 現在のスコア表示
+            _buildCurrentScoreDisplay(),
             const SizedBox(height: 16),
 
+            // 更新率と実行ボタン
+            _buildExecutionPrompt(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 再構築シミュレーション結果カード
+  Widget _buildSimulationResultCard() {
+    return Card(
+      color: Theme.of(context).cardColor,
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(2.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 結果表示（余白なし）
             _buildSimulationResult(),
+
+            // 下部余白のみ
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -620,26 +694,91 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Theme.of(context).dividerColor),
           ),
-          child: Text(
-            '${rebuildType.label}によって現在のスコアを更新する確率は${updateRate.toStringAsFixed(2)}%です。実行しますか？',
-            style: const TextStyle(fontSize: 14),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      '${rebuildType.label}によって現在のスコアを更新する確率は${updateRate.toStringAsFixed(2)}%です。実行しますか？',
+                      style: const TextStyle(fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Tooltip(
+                    message:
+                        '※この結果はモンテカルロ法(N=200k)によるシミュレーションを用いており、\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                    padding: const EdgeInsets.all(12),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.help_outline,
+                      size: 18,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
 
-        // 実行ボタン（大きめサイズ）
+        // 実行ボタン（大きめサイズ、コントラスト強化）
         ElevatedButton.icon(
-          onPressed: _executeSimulation,
-          icon: const Icon(Icons.play_arrow, size: 24),
-          label: const Text(
-            '再構築を実行',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          onPressed: _isCalculating ? null : _executeSimulation,
+          icon: _isCalculating
+              ? SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                )
+              : const Icon(Icons.play_arrow, size: 24),
+          label: Text(
+            _isCalculating ? '実行中...' : '再構築を実行',
+            style: const TextStyle(fontSize: 16),
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             minimumSize: const Size(200, 56),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            elevation: 4,
           ),
+        ),
+
+        // アニメーション有効化チェックボックス
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Checkbox(
+              value: _isAnimationEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _isAnimationEnabled = value ?? true;
+                });
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+          ],
         ),
       ],
     );
@@ -694,6 +833,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                     fontWeight: FontWeight.normal,
                     fontSize: 18,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               // 現在値
@@ -781,18 +921,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            '現在のスコア',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('現在のスコア', style: TextStyle(fontSize: 18)),
           Row(
             children: [
               Text(
                 score.toStringAsFixed(1),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 22),
               ),
               const SizedBox(width: 8),
               Container(
@@ -808,8 +942,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                 child: Text(
                   rank,
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                     color: _getScoreRankColor(rank),
                   ),
                 ),
@@ -894,65 +1027,131 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // スコア比較
-        _buildScoreComparison(trial),
-        const SizedBox(height: 8),
-
-        // サブステータス一覧
+        // サブステータス一覧（左右余白なし）
         _buildSubstatsList(trial),
-        const SizedBox(height: 8),
 
-        // アクションボタン（大きめサイズ）
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _executeSimulation,
-                icon: const Icon(Icons.refresh, size: 22),
-                label: const Text(
-                  'もう一度試す',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        // アニメーション完了後のみスコア比較とボタンを表示
+        if (!_isAnimating) ...[
+          const SizedBox(height: 8),
+          // スコア比較（左右余白なし）
+          _buildScoreComparison(trial),
+          const SizedBox(height: 8),
+
+          // アクションボタン（横余白のみ追加）
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isCalculating ? null : _executeSimulation,
+                    icon: _isCalculating
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          )
+                        : const Icon(Icons.refresh, size: 22),
+                    label: Text(
+                      _isCalculating ? '実行中...' : '再構築！',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: const Size(0, 50),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 2,
+                      ),
+                    ),
+                  ),
                 ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(0, 50),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isCalculating ? null : _resetSimulation,
+                    icon: const Icon(Icons.close, size: 22),
+                    label: const Text('リセット', style: TextStyle(fontSize: 16)),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      minimumSize: const Size(0, 50),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.1),
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                      side: BorderSide(
+                        color: Theme.of(context).colorScheme.error,
+                        width: 2,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _resetSimulation,
-                icon: const Icon(Icons.close, size: 22),
-                label: const Text(
-                  'リセット',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+
+          // アニメーション有効化チェックボックス
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _isAnimationEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _isAnimationEnabled = value ?? true;
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
                 ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  minimumSize: const Size(0, 50),
-                ),
-              ),
+                const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ],
     );
   }
 
   /// スコア比較表示
   Widget _buildScoreComparison(RebuildSimulationTrial trial) {
-    // お祝いメッセージ
-    String congratsMessage = '';
-    // if (trial.isImproved) {
-    //   if (trial.scoreDiff >= 10.0) {
-    //     congratsMessage = '🎉 大成功！';
-    //   } else if (trial.scoreDiff >= 5.0) {
-    //     congratsMessage = '✨ 素晴らしい！';
-    //   } else {
-    //     congratsMessage = '👍 改善！';
-    //   }
-    // }
+    final oldScore = _simulationResult!.currentScore;
+    final newScore = trial.newScore;
+    final scoreDiff = trial.scoreDiff;
+    final rebuildTypeLabel = _selectedRebuildType!.label;
+
+    // ランク取得
+    final oldRank = _getScoreRank(oldScore);
+    final newRank = _getScoreRank(newScore);
+    final oldRankColor = _getScoreRankColor(oldRank);
+    final newRankColor = _getScoreRankColor(newRank);
+
+    // スコア更新時メッセージを生成
+    String updateMessage = '';
+    if (trial.isImproved) {
+      // 理論値到達判定（理論最大スコアと同等またはそれ以上）
+      final theoreticalMax = _simulationResult!.theoreticalMaxScore;
+      if (newScore >= theoreticalMax - 0.1) {
+        // 誤差を考慮して0.1以内なら理論値とみなす
+        updateMessage =
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！';
+      } else {
+        updateMessage =
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新しました！';
+      }
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -969,59 +1168,97 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // お祝いメッセージ
-          if (congratsMessage.isNotEmpty) ...[
-            Text(
-              congratsMessage,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.green.shade700,
+          // スコア表示（ランク付き）
+          Row(
+            children: [
+              Text(
+                '再構築前スコア: ${oldScore.toStringAsFixed(1)}',
+                style: const TextStyle(fontSize: 14),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
-          // スコア表示
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: oldRankColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: oldRankColor, width: 1),
+                ),
+                child: Text(
+                  oldRank,
+                  style: TextStyle(fontSize: 12, color: oldRankColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
                   Text(
-                    '現在: ${_simulationResult!.currentScore.toStringAsFixed(1)}',
-                    style: const TextStyle(fontSize: 14),
+                    '再構築後スコア: ${newScore.toStringAsFixed(1)}',
+                    style: const TextStyle(fontSize: 18),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'シミュレーション: ${trial.newScore.toStringAsFixed(1)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: newRankColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: newRankColor, width: 1.5),
+                    ),
+                    child: Text(
+                      newRank,
+                      style: TextStyle(fontSize: 16, color: newRankColor),
                     ),
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: trial.isImproved ? Colors.green : Colors.red,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  '${trial.scoreDiff >= 0 ? '+' : ''}${trial.scoreDiff.toStringAsFixed(1)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  '${scoreDiff >= 0 ? '+' : ''}${scoreDiff.toStringAsFixed(1)}',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
             ],
           ),
+          // スコア更新時メッセージ
+          if (updateMessage.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: Colors.orange.withValues(alpha: 0.5),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      updateMessage,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1029,6 +1266,19 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
 
   /// サブステータス一覧表示
   Widget _buildSubstatsList(RebuildSimulationTrial trial) {
+    // メインステータスの表示値を取得
+    String getMainStatDisplayValue() {
+      final value = widget.summary.mainStatValue;
+      if (value == null) return '';
+
+      // メインステータスがパーセント表示が必要か判定
+      final propId = widget.summary.mainPropId;
+      if (propId != null && _isPercentageStat(propId)) {
+        return '${value.toStringAsFixed(1)}%';
+      }
+      return value.toStringAsFixed(0);
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1039,24 +1289,91 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '新しいサブステータス',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          // 聖遺物ヘッダー（アイコン + 部位 + メインステータス）
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // アイコン
+              if (widget.summary.iconAssetPath != null)
+                Image.asset(
+                  widget.summary.iconAssetPath!,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.contain,
+                ),
+              const SizedBox(width: 12),
+              // 部位名とメインステータス
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 部位名
+                    Text(
+                      widget.summary.equipTypeLabel,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // メインステータス
+                    Text(
+                      '${widget.summary.mainPropLabel} ${getMainStatDisplayValue()}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.normal,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
+          const Divider(),
           const SizedBox(height: 8),
-          ...trial.newSubstats.map(
-            (substat) => _buildSimulationSubstatView(substat),
+          const Text('シミュレーション結果', style: TextStyle(fontSize: 18)),
+          const SizedBox(height: 8),
+          // すべてのサブステータスを表示（アニメーションは強化レベルで制御）
+          ...trial.newSubstats.asMap().entries.map(
+            (entry) => _buildSimulationSubstatView(entry.value, entry.key),
           ),
         ],
       ),
     );
   }
 
+  /// パーセント表示が必要なステータスかどうか
+  bool _isPercentageStat(String propId) {
+    const percentageStats = [
+      'FIGHT_PROP_HP_PERCENT',
+      'FIGHT_PROP_ATTACK_PERCENT',
+      'FIGHT_PROP_DEFENSE_PERCENT',
+      'FIGHT_PROP_CRITICAL',
+      'FIGHT_PROP_CRITICAL_HURT',
+      'FIGHT_PROP_CHARGE_EFFICIENCY',
+      'FIGHT_PROP_FIRE_ADD_HURT',
+      'FIGHT_PROP_WATER_ADD_HURT',
+      'FIGHT_PROP_GRASS_ADD_HURT',
+      'FIGHT_PROP_ELEC_ADD_HURT',
+      'FIGHT_PROP_WIND_ADD_HURT',
+      'FIGHT_PROP_ICE_ADD_HURT',
+      'FIGHT_PROP_ROCK_ADD_HURT',
+      'FIGHT_PROP_PHYSICAL_ADD_HURT',
+      'FIGHT_PROP_HEAL_ADD',
+    ];
+    return percentageStats.contains(propId);
+  }
+
   /// シミュレーション結果のサブステータス表示（ランク付き履歴）
-  Widget _buildSimulationSubstatView(SubstatSummary substat) {
+  Widget _buildSimulationSubstatView(SubstatSummary substat, int index) {
     final theme = Theme.of(context);
-    final isScoreTarget =
-        _getSelectedStatsMap()[_getPropIdToStatName(substat.propId)] == true;
+
+    // 追加ステータス判定: ユーザーが選択した2つのサブオプションのみ
+    final isDesiredSubstat = _selectedSubstatIds.contains(substat.propId);
+
+    // ハイライト判定
+    final isHighlighted = _highlightedSubstatIndex == index;
 
     // パーセント表示判定
     final isPercentage =
@@ -1065,21 +1382,57 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         substat.propId != 'FIGHT_PROP_DEFENSE' &&
         substat.propId != 'FIGHT_PROP_HP';
 
-    final valueText = isPercentage
-        ? '${substat.statValue.toStringAsFixed(1)}%'
-        : substat.statValue.toStringAsFixed(0);
+    // 現在の強化レベルまでの累積値を計算
+    final currentArtifactLevel = _currentEnhancementLevel * 4; // 0,4,8,12,16,20
+    double displayValue = 0.0;
+    int visibleRolls = 0;
 
-    return Padding(
+    for (int i = 0; i < substat.enhancementLevels.length; i++) {
+      if (substat.enhancementLevels[i] <= currentArtifactLevel) {
+        displayValue += substat.rollValues[i];
+        visibleRolls++;
+      } else {
+        break;
+      }
+    }
+
+    final valueText = isPercentage
+        ? '${displayValue.toStringAsFixed(1)}%'
+        : displayValue.toStringAsFixed(0);
+
+    // ハイライト時の色と強度を決定
+    // 追加ステータス（_selectedSubstatIds内の2つ）: 白く光る
+    // それ以外: かなり弱めに白く光る（ハズレ感）
+    final highlightColor = Colors.white.withValues(alpha: 0.3);
+    final highlightAlpha = isDesiredSubstat ? 0.25 : 0.08;
+    final shadowAlpha = isDesiredSubstat ? 0.3 : 0.1;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: isHighlighted
+            ? highlightColor.withValues(alpha: highlightAlpha)
+            : Colors.transparent,
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                  color: highlightColor.withValues(alpha: shadowAlpha),
+                  blurRadius: 0,
+                  spreadRadius: 0,
+                ),
+              ]
+            : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1行目: マーカー、ステータス名、現在値
           Row(
             children: [
-              // マーカー
+              // マーカー（追加ステータスは●、それ以外は○）
               Text(
-                isScoreTarget ? '●' : '○',
+                isDesiredSubstat ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
@@ -1092,6 +1445,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                     fontWeight: FontWeight.normal,
                     fontSize: 18,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               // 現在値
@@ -1108,13 +1462,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
               ),
             ],
           ),
-          // 2行目: 強化回数と履歴（リッチなランク表示）
-          if (substat.rollValues.isNotEmpty)
+          // 2行目: 強化回数と履歴（現在のレベルまでのロールのみ表示）
+          if (visibleRolls > 0)
             Padding(
               padding: const EdgeInsets.only(left: 30, top: 2),
               child: Row(
                 children: [
-                  // 強化回数バッジ（SubstatDetailViewと同じスタイル）
+                  // 強化回数バッジ（現在表示中のロール数）
                   Container(
                     constraints: const BoxConstraints(minWidth: 32),
                     padding: const EdgeInsets.symmetric(
@@ -1130,7 +1484,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                       ),
                     ),
                     child: Text(
-                      '×${substat.totalUpgrades}',
+                      '×$visibleRolls',
                       style: TextStyle(
                         color: theme.brightness == Brightness.dark
                             ? const Color(0xFFE8C547)
@@ -1141,14 +1495,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // 強化履歴（リッチなランク表示）
+                  // 強化履歴（現在のレベルまでのロールのみ表示）
                   Expanded(
                     child: Wrap(
                       spacing: 4,
                       runSpacing: 2,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        for (int i = 0; i < substat.rollValues.length; i++) ...[
+                        for (int i = 0; i < visibleRolls; i++) ...[
                           if (i > 0)
                             Text(
                               '+',
@@ -1241,11 +1595,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
           ),
           child: Text(
             rank,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 13, color: Colors.white),
           ),
         ),
       ],
@@ -1261,28 +1611,186 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
   }
 
   /// シミュレーション実行
-  void _executeSimulation() {
+  Future<void> _executeSimulation() async {
     if (_simulationResult == null || _selectedRebuildType == null) return;
+
+    // ローディング開始
+    setState(() {
+      _isCalculating = true;
+    });
+
+    // ローディング時間（0.6秒）
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    // ユーザーが選択した追加ステータスからprimaryとsecondaryを取得
+    final selectedSubstats = widget.summary.substats
+        .where((s) => _selectedSubstatIds.contains(s.propId))
+        .toList();
+
+    if (selectedSubstats.length != 2) {
+      setState(() {
+        _isCalculating = false;
+      });
+      return;
+    }
+
+    // 優先度順にソート（高い方がprimary）
+    selectedSubstats.sort((a, b) {
+      const priority = {
+        'FIGHT_PROP_CRITICAL': 7,
+        'FIGHT_PROP_CRITICAL_HURT': 6,
+        'FIGHT_PROP_DEFENSE_PERCENT': 5,
+        'FIGHT_PROP_CHARGE_EFFICIENCY': 4,
+        'FIGHT_PROP_ATTACK_PERCENT': 3,
+        'FIGHT_PROP_HP_PERCENT': 2,
+        'FIGHT_PROP_ELEMENT_MASTERY': 1,
+      };
+      final priorityA = priority[a.propId] ?? 0;
+      final priorityB = priority[b.propId] ?? 0;
+      return priorityB.compareTo(priorityA);
+    });
 
     final trial = _simulatorService.simulateRebuild(
       currentSubstats: _simulationResult!.allSubstats,
       currentScore: _simulationResult!.currentScore,
-      primarySubstat: _simulationResult!.primarySubstat,
-      secondarySubstat: _simulationResult!.secondarySubstat,
+      primarySubstat: selectedSubstats[0], // ユーザー選択の第1希望
+      secondarySubstat: selectedSubstats[1], // ユーザー選択の第2希望
       initialSubstatCount: widget.summary.initialSubstatCount,
       scoreTargetPropIds: widget.scoreTargetPropIds,
       rebuildType: _selectedRebuildType!,
     );
 
+    // 試行回数をカウントアップ
+    _rebuildAttemptCount++;
+
+    // アニメーションが無効の場合は即座に結果を表示
+    if (!_isAnimationEnabled) {
+      setState(() {
+        _simulationTrial = trial;
+        _isCalculating = false;
+        _isAnimating = false;
+        _currentEnhancementLevel = 5; // 最終強化レベル
+        _highlightedSubstatIndex = -1;
+      });
+      return;
+    }
+
+    // 結果を設定してアニメーション開始
+    // すべてのサブステータスを初期値で表示後、強化ロールごとにアニメーション
     setState(() {
       _simulationTrial = trial;
+      _isCalculating = false;
+      _isAnimating = true;
+      _currentEnhancementLevel = 0; // 初期値から開始
+      _highlightedSubstatIndex = -1;
     });
+
+    // 5回の強化ロールをアニメーション表示（0.3秒間隔）
+    for (int rollLevel = 1; rollLevel <= 5; rollLevel++) {
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      // この強化レベルでどのサブステータスが強化されたかを判定
+      final enhancedIndex = _findEnhancedSubstatIndexForLevel(trial, rollLevel);
+
+      setState(() {
+        _currentEnhancementLevel = rollLevel;
+        _highlightedSubstatIndex = enhancedIndex;
+      });
+
+      // ハイライトを0.2秒間表示
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+
+      setState(() {
+        _highlightedSubstatIndex = -1;
+      });
+    }
+
+    // アニメーション完了
+    setState(() {
+      _isAnimating = false;
+      _currentEnhancementLevel = 5; // 最終強化レベル
+    });
+  }
+
+  /// 指定した強化レベルで強化されたサブステータスのインデックスを返す
+  /// rollLevel: 1-5（+4, +8, +12, +16, +20に対応）
+  int _findEnhancedSubstatIndexForLevel(
+    RebuildSimulationTrial trial,
+    int rollLevel,
+  ) {
+    // rollLevelを聖遺物の強化レベルに変換
+    // rollLevel 1 → +4, rollLevel 2 → +8, ... rollLevel 5 → +20
+    final artifactLevel = rollLevel * 4;
+
+    // 各サブステータスのenhancementLevelsを確認して、該当レベルで強化されたものを探す
+    for (int i = 0; i < trial.newSubstats.length; i++) {
+      final substat = trial.newSubstats[i];
+      if (substat.enhancementLevels.contains(artifactLevel)) {
+        return i;
+      }
+    }
+
+    // 該当なしの場合は最初のサブステータス（本来は起こらない）
+    return 0;
   }
 
   /// シミュレーションリセット
   void _resetSimulation() {
     setState(() {
+      // 追加ステータス選択まで戻る
+      _selectedSubstatIds.clear();
+      _selectedRebuildType = null;
+      _simulationResult = null;
+      _updateRates.clear();
       _simulationTrial = null;
+      _isRebuildTypeCollapsed = false;
+      _isSubstatSelectionCollapsed = false;
+      // アニメーション状態もリセット
+      _isAnimating = false;
+      _currentEnhancementLevel = 0;
+      _highlightedSubstatIndex = -1;
+      // 試行回数もリセット
+      _rebuildAttemptCount = 0;
+    });
+  }
+
+  /// シミュレーション結果のスコアを再計算
+  /// スコア計算対象が変更された際に、再構築後のサブステータスから新しいスコアを計算
+  void _recalculateSimulationTrial() {
+    if (_simulationTrial == null || _simulationResult == null) return;
+
+    // アニメーション状態をリセット（即座に全表示）
+    setState(() {
+      _isAnimating = false;
+      _currentEnhancementLevel = 5; // 最終強化レベルを表示
+      _highlightedSubstatIndex = -1;
+    });
+
+    // 再構築後のサブステータスから新しいスコアを計算
+    double newScore = 0.0;
+    for (final substat in _simulationTrial!.newSubstats) {
+      if (widget.scoreTargetPropIds.contains(substat.propId)) {
+        // スコア係数を適用（会心率は×2、会心ダメージは×1）
+        final coefficient = substat.propId == 'FIGHT_PROP_CRITICAL' ? 2.0 : 1.0;
+        newScore += substat.statValue * coefficient;
+      }
+    }
+
+    // 現在のスコアは_simulationResultから取得（すでに_recalculate()で更新済み）
+    final currentScore = _simulationResult!.currentScore;
+    final scoreDiff = newScore - currentScore;
+    final isImproved = newScore > currentScore;
+
+    // 新しいRebuildSimulationTrialを作成
+    setState(() {
+      _simulationTrial = RebuildSimulationTrial(
+        newSubstats: _simulationTrial!.newSubstats,
+        newScore: newScore,
+        scoreDiff: scoreDiff,
+        isImproved: isImproved,
+      );
     });
   }
 
@@ -1296,14 +1804,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
       return;
     }
 
-    final selectedSubstats = widget.summary.substats
-        .where((s) => _selectedSubstatIds.contains(s.propId))
-        .toList();
-
     // ③ 基本情報を1回計算（再構築種別に依存しない）
     final baseInfo = _simulatorService.calculateBaseInfo(
-      substat1: selectedSubstats[0],
-      substat2: selectedSubstats[1],
       allSubstats: widget.summary.substats,
       initialSubstatCount: widget.summary.initialSubstatCount,
       scoreTargetPropIds: widget.scoreTargetPropIds,
@@ -1324,6 +1826,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView> {
         baseInfo: baseInfo,
         rebuildType: type,
         scoreTargetPropIds: widget.scoreTargetPropIds,
+        desiredSubstatIds: _selectedSubstatIds, // ユーザーが選択した追加ステータス
       );
       newUpdateRates[type] = updateRate;
     }

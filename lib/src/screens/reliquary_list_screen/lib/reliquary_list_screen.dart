@@ -38,6 +38,9 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
     '会心ダメージ': true,
   };
 
+  // スコア計算対象の折り畳み状態
+  bool _isScoreTargetCollapsed = true;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -173,60 +176,8 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
             )
           : Column(
               children: [
-                // スコア計算対象のステータス選択（固定）
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  color: Theme.of(context).cardColor,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'スコア計算対象',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: _scoreTargetStats.keys.map((statName) {
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Checkbox(
-                                value: _scoreTargetStats[statName],
-                                onChanged: (value) {
-                                  setState(() {
-                                    _scoreTargetStats[statName] =
-                                        value ?? false;
-                                  });
-                                },
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _scoreTargetStats[statName] =
-                                        !_scoreTargetStats[statName]!;
-                                  });
-                                },
-                                child: Text(
-                                  statName,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
+                // スコア計算対象のステータス選択（折り畳み対応）
+                _buildScoreTargetSelection(),
                 // 聖遺物件数と一覧（スクロール可能）
                 Expanded(
                   child: CustomScrollView(
@@ -308,6 +259,142 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  /// スコア計算対象選択UI（折り畳み対応）
+  Widget _buildScoreTargetSelection() {
+    const statNameToPropId = {
+      '会心率': 'FIGHT_PROP_CRITICAL',
+      '会心ダメージ': 'FIGHT_PROP_CRITICAL_HURT',
+      '攻撃力%': 'FIGHT_PROP_ATTACK_PERCENT',
+      '防御力%': 'FIGHT_PROP_DEFENSE_PERCENT',
+      'HP%': 'FIGHT_PROP_HP_PERCENT',
+      '元素チャージ効率': 'FIGHT_PROP_CHARGE_EFFICIENCY',
+      '元素熟知': 'FIGHT_PROP_ELEMENT_MASTERY',
+    };
+
+    // 選択中のステータスリストを取得
+    final selectedStats = _scoreTargetStats.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ヘッダー行（折り畳み・展開共通の高さ）
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isScoreTargetCollapsed = !_isScoreTargetCollapsed;
+              });
+            },
+            child: SizedBox(
+              height: 40, // 固定高さでアイコンと同じ高さを維持
+              child: Row(
+                children: [
+                  Text(
+                    'スコア計算対象',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(width: 12),
+                  // 折り畳み時のみアイコン表示
+                  if (_isScoreTargetCollapsed)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: selectedStats.map((statName) {
+                            final propId = statNameToPropId[statName];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: _buildStatIcon(statName, propId),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    )
+                  else
+                    // 展開時は空白スペースをタップ対象に
+                    const Expanded(child: SizedBox()),
+                  Icon(
+                    _isScoreTargetCollapsed
+                        ? Icons.expand_more
+                        : Icons.expand_less,
+                    color: Theme.of(context).iconTheme.color,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // 展開時: Checkboxリスト
+          if (!_isScoreTargetCollapsed) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: _scoreTargetStats.keys.map((statName) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: _scoreTargetStats[statName],
+                      onChanged: (value) {
+                        setState(() {
+                          _scoreTargetStats[statName] = value ?? false;
+                        });
+                      },
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _scoreTargetStats[statName] =
+                              !_scoreTargetStats[statName]!;
+                        });
+                      },
+                      child: Text(
+                        statName,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// ステータスアイコンをビルド
+  Widget _buildStatIcon(String statName, String? propId) {
+    if (propId == null) return const SizedBox.shrink();
+
+    return Tooltip(
+      message: statName,
+      child: Image.asset(
+        'assets/image/$propId.webp',
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+      ),
     );
   }
 }

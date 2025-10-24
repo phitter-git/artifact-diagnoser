@@ -68,7 +68,6 @@ class MainApp extends StatelessWidget {
                     brightness: Brightness.dark,
                   ).copyWith(
                     surface: const Color(0xFF1E1E1E), // 暗いグレー
-                    background: const Color(0xFF1E1E1E),
                   ),
               scaffoldBackgroundColor: const Color(0xFF1E1E1E),
             ),
