@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:web/web.dart' as web;
 
 /// 再構築シミュレータービュー
 ///
@@ -1066,6 +1066,39 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
 
+          // アニメーション有効化チェックボックス
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _isAnimationEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _isAnimationEnabled = value ?? true;
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isAnimationEnabled = !_isAnimationEnabled;
+                    });
+                  },
+                  child: const Text(
+                    'アニメーションを有効化',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
           // アクションボタン（横余白のみ追加）
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1128,39 +1161,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             ),
           ),
 
-          // アニメーション有効化チェックボックス
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  value: _isAnimationEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _isAnimationEnabled = value ?? true;
-                    });
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isAnimationEnabled = !_isAnimationEnabled;
-                    });
-                  },
-                  child: const Text(
-                    'アニメーションを有効化',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // シェアボタン（更新時のみ表示）
+          // シェアボタン（スコア更新時のみ表示）
           if (_simulationTrial != null && _simulationTrial!.isImproved) ...[
             const SizedBox(height: 12),
             Padding(
@@ -1864,12 +1865,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       late String text;
       if (isTheoreticalMax) {
         text =
-            '${_rebuildAttemptCount}回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！\n'
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！\n'
             'スコアは${newScore.toStringAsFixed(1)}！\n'
             '#再構築シミュレータ #原神';
       } else {
         text =
-            '${_rebuildAttemptCount}回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新！\n'
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新！\n'
             'スコアは${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}！\n'
             '#再構築シミュレータ #原神';
       }
@@ -1877,7 +1878,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // XのWeb Intent URLを開く
       final encodedText = Uri.encodeComponent(text);
       final xUrl = 'https://twitter.com/intent/tweet?text=$encodedText';
-      html.window.open(xUrl, '_blank');
+      web.window.open(xUrl, '_blank');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
