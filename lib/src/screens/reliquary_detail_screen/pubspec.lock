@@ -95,6 +95,13 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  home_screen:
+    dependency: transitive
+    description:
+      path: "../home_screen"
+      relative: true
+    source: path
+    version: "0.0.0"
   http:
     dependency: transitive
     description:
@@ -420,7 +427,7 @@ packages:
     source: hosted
     version: "15.0.2"
   web:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: web
       sha256: "868d88a33d8a87b18ffc05f9f030ba328ffefba92d6c127917a2ba740f9cfe4a"

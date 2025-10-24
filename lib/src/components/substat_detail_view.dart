@@ -230,6 +230,15 @@ class SubstatDetailView extends StatelessWidget {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
+              // サブステータスアイコン
+              Image.asset(
+                'assets/image/${substat.propId}.webp',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(width: 20, height: 20),
+              ),
+              const SizedBox(width: 8),
               // ステータス名
               Expanded(
                 flex: 3,

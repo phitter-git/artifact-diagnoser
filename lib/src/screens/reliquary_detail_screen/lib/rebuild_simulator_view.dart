@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:web/web.dart' as web;
 
 /// 再構築シミュレータービュー
 ///
@@ -30,6 +31,7 @@ class RebuildSimulatorView extends StatefulWidget {
 class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     with AutomaticKeepAliveClientMixin {
   final _simulatorService = RebuildSimulatorService();
+  final _scrollController = ScrollController();
 
   // 選択された2つのサブステータスのpropId
   final Set<String> _selectedSubstatIds = {};
@@ -69,6 +71,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   @override
   bool get wantKeepAlive => true;
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   /// 選択されたサブステータスのラベルをカンマ区切りで取得
   String _getSelectedSubstatLabels() {
     final labels = <String>[];
@@ -105,6 +113,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Container(
         constraints: const BoxConstraints(maxWidth: 800),
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -777,7 +786,14 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
-            const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isAnimationEnabled = !_isAnimationEnabled;
+                });
+              },
+              child: const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+            ),
           ],
         ),
       ],
@@ -824,6 +840,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
+              // サブステータスアイコン
+              Image.asset(
+                'assets/image/${substat.propId}.webp',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(width: 20, height: 20),
+              ),
+              const SizedBox(width: 8),
               // ステータス名
               Expanded(
                 flex: 3,
@@ -1027,14 +1052,51 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // サブステータス一覧（左右余白なし）
+        // サブステータス一覧
         _buildSubstatsList(trial),
 
-        // アニメーション完了後のみスコア比較とボタンを表示
+        // アニメーション完了後のみスコア比較を表示
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
-          // スコア比較（左右余白なし）
+          // スコア比較
           _buildScoreComparison(trial),
+        ],
+
+        // アニメーション完了後のみボタンを表示
+        if (!_isAnimating) ...[
+          const SizedBox(height: 8),
+
+          // アニメーション有効化チェックボックス
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _isAnimationEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _isAnimationEnabled = value ?? true;
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isAnimationEnabled = !_isAnimationEnabled;
+                    });
+                  },
+                  child: const Text(
+                    'アニメーションを有効化',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 8),
 
           // アクションボタン（横余白のみ追加）
@@ -1099,27 +1161,36 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             ),
           ),
 
-          // アニメーション有効化チェックボックス
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Checkbox(
-                  value: _isAnimationEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _isAnimationEnabled = value ?? true;
-                    });
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                ),
-                const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
-              ],
+          // シェアボタン（スコア更新時のみ表示）
+          if (_simulationTrial != null && _simulationTrial!.isImproved) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  // Xへ投稿ボタン
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _shareToX,
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text('Xに投稿', style: TextStyle(fontSize: 14)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: const Color(
+                          0xFF1DA1F2,
+                        ).withValues(alpha: 0.1),
+                        foregroundColor: const Color(0xFF1DA1F2),
+                        side: const BorderSide(
+                          color: Color(0xFF1DA1F2),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ],
     );
@@ -1372,6 +1443,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     // 追加ステータス判定: ユーザーが選択した2つのサブオプションのみ
     final isDesiredSubstat = _selectedSubstatIds.contains(substat.propId);
 
+    // スコア計算対象判定: scoreTargetPropIdsに含まれているか
+    final isScoreTarget = widget.scoreTargetPropIds.contains(substat.propId);
+
     // ハイライト判定
     final isHighlighted = _highlightedSubstatIndex == index;
 
@@ -1430,12 +1504,21 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
           // 1行目: マーカー、ステータス名、現在値
           Row(
             children: [
-              // マーカー（追加ステータスは●、それ以外は○）
+              // マーカー（スコア計算対象は●、それ以外は○）
               Text(
-                isDesiredSubstat ? '●' : '○',
+                isScoreTarget ? '●' : '○',
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 20),
               ),
               const SizedBox(width: 10),
+              // サブステータスアイコン
+              Image.asset(
+                'assets/image/${substat.propId}.webp',
+                width: 20,
+                height: 20,
+                errorBuilder: (context, error, stackTrace) =>
+                    const SizedBox(width: 20, height: 20),
+              ),
+              const SizedBox(width: 8),
               // ステータス名
               Expanded(
                 flex: 3,
@@ -1663,6 +1746,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     // 試行回数をカウントアップ
     _rebuildAttemptCount++;
 
+    // 画面最上部へスクロール
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+
     // アニメーションが無効の場合は即座に結果を表示
     if (!_isAnimationEnabled) {
       setState(() {
@@ -1754,6 +1846,55 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // 試行回数もリセット
       _rebuildAttemptCount = 0;
     });
+  }
+
+  /// Xへのリンク共有
+  Future<void> _shareToX() async {
+    try {
+      // 投稿テキストを生成
+      final trial = _simulationTrial!;
+      final oldScore = _simulationResult!.currentScore;
+      final newScore = trial.newScore;
+      final scoreDiff = trial.scoreDiff;
+      final rebuildTypeLabel = _selectedRebuildType!.label;
+
+      // 理論値到達判定
+      final theoreticalMax = _simulationResult!.theoreticalMaxScore;
+      final isTheoreticalMax = newScore >= theoreticalMax - 0.1;
+
+      late String text;
+      if (isTheoreticalMax) {
+        text =
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！\n'
+            'スコアは${newScore.toStringAsFixed(1)}！\n'
+            '#再構築シミュレータ #原神';
+      } else {
+        text =
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新！\n'
+            'スコアは${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}！\n'
+            '#再構築シミュレータ #原神';
+      }
+
+      // XのWeb Intent URLを開く
+      final encodedText = Uri.encodeComponent(text);
+      final xUrl = 'https://x.com/intent/tweet?text=$encodedText';
+      web.window.open(xUrl, '_blank');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Xの投稿画面を開きました'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Xへの共有に失敗しました: $e')));
+      }
+    }
   }
 
   /// シミュレーション結果のスコアを再計算
