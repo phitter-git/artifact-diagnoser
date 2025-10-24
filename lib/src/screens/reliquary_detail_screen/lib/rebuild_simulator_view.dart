@@ -78,6 +78,11 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         _simulationResult != null) {
       // 現在の選択状態で再計算
       _recalculate();
+
+      // シミュレーション結果がある場合、再構築後のスコアも再計算
+      if (_simulationTrial != null) {
+        _recalculateSimulationTrial();
+      }
     }
   }
 
@@ -743,7 +748,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               : const Icon(Icons.play_arrow, size: 24),
           label: Text(
             _isCalculating ? '計算中...' : '再構築を実行',
-            style: const TextStyle(fontSize: 20),
+            style: const TextStyle(fontSize: 16),
           ),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
@@ -1521,6 +1526,37 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       _simulationTrial = null;
       _isRebuildTypeCollapsed = false;
       _isSubstatSelectionCollapsed = false;
+    });
+  }
+
+  /// シミュレーション結果のスコアを再計算
+  /// スコア計算対象が変更された際に、再構築後のサブステータスから新しいスコアを計算
+  void _recalculateSimulationTrial() {
+    if (_simulationTrial == null || _simulationResult == null) return;
+
+    // 再構築後のサブステータスから新しいスコアを計算
+    double newScore = 0.0;
+    for (final substat in _simulationTrial!.newSubstats) {
+      if (widget.scoreTargetPropIds.contains(substat.propId)) {
+        // スコア係数を適用（会心率は×2、会心ダメージは×1）
+        final coefficient = substat.propId == 'FIGHT_PROP_CRITICAL' ? 2.0 : 1.0;
+        newScore += substat.statValue * coefficient;
+      }
+    }
+
+    // 現在のスコアは_simulationResultから取得（すでに_recalculate()で更新済み）
+    final currentScore = _simulationResult!.currentScore;
+    final scoreDiff = newScore - currentScore;
+    final isImproved = newScore > currentScore;
+
+    // 新しいRebuildSimulationTrialを作成
+    setState(() {
+      _simulationTrial = RebuildSimulationTrial(
+        newSubstats: _simulationTrial!.newSubstats,
+        newScore: newScore,
+        scoreDiff: scoreDiff,
+        isImproved: isImproved,
+      );
     });
   }
 
