@@ -84,50 +84,57 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   @override
   Widget build(BuildContext context) {
     super.build(context); // AutomaticKeepAliveClientMixin用
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ③ 再構築シミュレーション結果（実行後に最上部に表示）
-          if (_selectedRebuildType != null &&
-              _isRebuildTypeCollapsed &&
-              _simulationTrial != null) ...[
-            _buildSimulationResultCard(),
-            const SizedBox(height: 8),
-          ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ③ 再構築シミュレーション結果（実行後に最上部に表示）
+              if (_selectedRebuildType != null &&
+                  _isRebuildTypeCollapsed &&
+                  _simulationTrial != null) ...[
+                _buildSimulationResultCard(),
+                const SizedBox(height: 8),
+              ],
 
-          // ④ 再構築シミュレーション操作カード（種別選択後に表示、結果がない場合のみ）
-          if (_selectedRebuildType != null &&
-              _isRebuildTypeCollapsed &&
-              _simulationTrial == null) ...[
-            _buildSimulationControlCard(),
-            const SizedBox(height: 8),
-          ],
+              // ④ 再構築シミュレーション操作カード（種別選択後に表示、結果がない場合のみ）
+              if (_selectedRebuildType != null &&
+                  _isRebuildTypeCollapsed &&
+                  _simulationTrial == null) ...[
+                _buildSimulationControlCard(),
+                const SizedBox(height: 8),
+              ],
 
-          // ② 再構築種別選択（2つ選択後に表示）
-          if (_selectedSubstatIds.length == 2) ...[
-            if (_isCalculating && _updateRates.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (_isRebuildTypeCollapsed && _selectedRebuildType != null)
-              _buildRebuildTypeSelectionCollapsed()
-            else
-              _buildRebuildTypeSelection(),
-            const SizedBox(height: 8),
-          ],
+              // ② 再構築種別選択（2つ選択後に表示）
+              if (_selectedSubstatIds.length == 2) ...[
+                if (_isCalculating && _updateRates.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_isRebuildTypeCollapsed &&
+                    _selectedRebuildType != null)
+                  _buildRebuildTypeSelectionCollapsed()
+                else
+                  _buildRebuildTypeSelection(),
+                const SizedBox(height: 8),
+              ],
 
-          // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
-          if (_isSubstatSelectionCollapsed)
-            _buildSubstatSelectionCollapsed()
-          else
-            _buildSubstatSelection(),
-          const SizedBox(height: 8),
-        ],
+              // ① 希望サブオプション選択（2つ選択前のみ展開、選択後は折りたたむ）
+              if (_isSubstatSelectionCollapsed)
+                _buildSubstatSelectionCollapsed()
+              else
+                _buildSubstatSelection(),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -142,19 +142,25 @@ class _ReliquaryDetailScreenState extends State<ReliquaryDetailScreen>
                   ValueListenableBuilder<int>(
                     valueListenable: _scoreTargetChangeNotifier,
                     builder: (context, _, __) {
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            ReliquarySummaryView(
-                              summary: widget.summary,
-                              statAppendResolver: widget.statAppendResolver,
-                              selectedStats: _scoreTargetStats,
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                ReliquarySummaryView(
+                                  summary: widget.summary,
+                                  statAppendResolver: widget.statAppendResolver,
+                                  selectedStats: _scoreTargetStats,
+                                ),
+                                const SizedBox(height: 16),
+                                // 理論最大値セクション
+                                _buildTheoreticalMaxSection(),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                            // 理論最大値セクション
-                            _buildTheoreticalMaxSection(),
-                          ],
+                          ),
                         ),
                       );
                     },
