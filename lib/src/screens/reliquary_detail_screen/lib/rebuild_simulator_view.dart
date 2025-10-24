@@ -60,6 +60,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
   int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
 
+  // アニメーション有効化フラグ
+  bool _isAnimationEnabled = true;
+
   // 再構築試行回数カウンター
   int _rebuildAttemptCount = 0;
 
@@ -758,6 +761,25 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
             elevation: 4,
           ),
         ),
+
+        // アニメーション有効化チェックボックス
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Checkbox(
+              value: _isAnimationEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _isAnimationEnabled = value ?? true;
+                });
+              },
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+          ],
+        ),
       ],
     );
   }
@@ -1076,6 +1098,28 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               ],
             ),
           ),
+
+          // アニメーション有効化チェックボックス
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Checkbox(
+                  value: _isAnimationEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      _isAnimationEnabled = value ?? true;
+                    });
+                  },
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const Text('アニメーションを有効化', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
         ],
       ],
     );
@@ -1088,6 +1132,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     final scoreDiff = trial.scoreDiff;
     final rebuildTypeLabel = _selectedRebuildType!.label;
 
+    // ランク取得
+    final oldRank = _getScoreRank(oldScore);
+    final newRank = _getScoreRank(newScore);
+    final oldRankColor = _getScoreRankColor(oldRank);
+    final newRankColor = _getScoreRankColor(newRank);
+
     // スコア更新時メッセージを生成
     String updateMessage = '';
     if (trial.isImproved) {
@@ -1096,10 +1146,10 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       if (newScore >= theoreticalMax - 0.1) {
         // 誤差を考慮して0.1以内なら理論値とみなす
         updateMessage =
-            '${_rebuildAttemptCount}回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！';
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！';
       } else {
         updateMessage =
-            '${_rebuildAttemptCount}回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新しました！';
+            '$_rebuildAttemptCount回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新しました！';
       }
     }
 
@@ -1118,18 +1168,55 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // スコア表示
-          Text(
-            '再構築前スコア: ${oldScore.toStringAsFixed(1)}',
-            style: const TextStyle(fontSize: 14),
+          // スコア表示（ランク付き）
+          Row(
+            children: [
+              Text(
+                '再構築前スコア: ${oldScore.toStringAsFixed(1)}',
+                style: const TextStyle(fontSize: 14),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: oldRankColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: oldRankColor, width: 1),
+                ),
+                child: Text(
+                  oldRank,
+                  style: TextStyle(fontSize: 12, color: oldRankColor),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '再構築後スコア: ${newScore.toStringAsFixed(1)}',
-                style: const TextStyle(fontSize: 18),
+              Row(
+                children: [
+                  Text(
+                    '再構築後スコア: ${newScore.toStringAsFixed(1)}',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: newRankColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: newRankColor, width: 1.5),
+                    ),
+                    child: Text(
+                      newRank,
+                      style: TextStyle(fontSize: 16, color: newRankColor),
+                    ),
+                  ),
+                ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1573,6 +1660,21 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       rebuildType: _selectedRebuildType!,
     );
 
+    // 試行回数をカウントアップ
+    _rebuildAttemptCount++;
+
+    // アニメーションが無効の場合は即座に結果を表示
+    if (!_isAnimationEnabled) {
+      setState(() {
+        _simulationTrial = trial;
+        _isCalculating = false;
+        _isAnimating = false;
+        _currentEnhancementLevel = 5; // 最終強化レベル
+        _highlightedSubstatIndex = -1;
+      });
+      return;
+    }
+
     // 結果を設定してアニメーション開始
     // すべてのサブステータスを初期値で表示後、強化ロールごとにアニメーション
     setState(() {
@@ -1581,7 +1683,6 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       _isAnimating = true;
       _currentEnhancementLevel = 0; // 初期値から開始
       _highlightedSubstatIndex = -1;
-      _rebuildAttemptCount++; // 試行回数をカウントアップ
     });
 
     // 5回の強化ロールをアニメーション表示（0.3秒間隔）
