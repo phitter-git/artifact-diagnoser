@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
@@ -1051,14 +1052,18 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // サブステータス一覧（左右余白なし）
+        // サブステータス一覧
         _buildSubstatsList(trial),
 
-        // アニメーション完了後のみスコア比較とボタンを表示
+        // アニメーション完了後のみスコア比較を表示
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
-          // スコア比較（左右余白なし）
+          // スコア比較
           _buildScoreComparison(trial),
+        ],
+
+        // アニメーション完了後のみボタンを表示
+        if (!_isAnimating) ...[
           const SizedBox(height: 8),
 
           // アクションボタン（横余白のみ追加）
@@ -1154,6 +1159,37 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               ],
             ),
           ),
+
+          // シェアボタン（更新時のみ表示）
+          if (_simulationTrial != null && _simulationTrial!.isImproved) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  // Xへ投稿ボタン
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _shareToX,
+                      icon: const Icon(Icons.share, size: 18),
+                      label: const Text('Xに投稿', style: TextStyle(fontSize: 14)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: const Color(
+                          0xFF1DA1F2,
+                        ).withValues(alpha: 0.1),
+                        foregroundColor: const Color(0xFF1DA1F2),
+                        side: const BorderSide(
+                          color: Color(0xFF1DA1F2),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ],
     );
@@ -1809,6 +1845,55 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // 試行回数もリセット
       _rebuildAttemptCount = 0;
     });
+  }
+
+  /// Xへのリンク共有
+  Future<void> _shareToX() async {
+    try {
+      // 投稿テキストを生成
+      final trial = _simulationTrial!;
+      final oldScore = _simulationResult!.currentScore;
+      final newScore = trial.newScore;
+      final scoreDiff = trial.scoreDiff;
+      final rebuildTypeLabel = _selectedRebuildType!.label;
+
+      // 理論値到達判定
+      final theoreticalMax = _simulationResult!.theoreticalMaxScore;
+      final isTheoreticalMax = newScore >= theoreticalMax - 0.1;
+
+      late String text;
+      if (isTheoreticalMax) {
+        text =
+            '${_rebuildAttemptCount}回目の$rebuildTypeLabelで理論値聖遺物が誕生しました！\n'
+            'スコアは${newScore.toStringAsFixed(1)}！\n'
+            '#再構築シミュレータ #原神';
+      } else {
+        text =
+            '${_rebuildAttemptCount}回目の$rebuildTypeLabelでスコアを${scoreDiff.toStringAsFixed(1)}更新！\n'
+            'スコアは${oldScore.toStringAsFixed(1)} → ${newScore.toStringAsFixed(1)}！\n'
+            '#再構築シミュレータ #原神';
+      }
+
+      // XのWeb Intent URLを開く
+      final encodedText = Uri.encodeComponent(text);
+      final xUrl = 'https://twitter.com/intent/tweet?text=$encodedText';
+      html.window.open(xUrl, '_blank');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Xの投稿画面を開きました'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Xへの共有に失敗しました: $e')));
+      }
+    }
   }
 
   /// シミュレーション結果のスコアを再計算
