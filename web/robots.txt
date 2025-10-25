@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://phitter-git.github.io/artifact-diagnoser/sitemap.xml

@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#1a1a1a",
     "theme_color": "#6750A4",
-    "description": "Genshin Impact の聖遺物を詳細に分析し、再構築シミュレーションや最適化をサポートするWebアプリケーションです。",
+    "description": "原神の聖遺物を分析し、再構築シミュレーションやスコア更新率の提示で最適化をサポートするWebアプリケーションです。",
     "orientation": "any",
     "prefer_related_applications": false,
     "categories": ["utilities", "games"],

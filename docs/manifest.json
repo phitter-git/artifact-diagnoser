@@ -1,13 +1,15 @@
 {
-    "name": "artifact_diagnoser",
-    "short_name": "artifact_diagnoser",
+    "name": "聖遺物診断機 - 再構築シミュレーター",
+    "short_name": "聖遺物診断機",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#1a1a1a",
+    "theme_color": "#6750A4",
+    "description": "原神の聖遺物を分析し、再構築シミュレーションやスコア更新率の提示で最適化をサポートするWebアプリケーションです。",
+    "orientation": "any",
     "prefer_related_applications": false,
+    "categories": ["utilities", "games"],
+    "lang": "ja",
     "icons": [
         {
             "src": "icons/Icon-192.png",
