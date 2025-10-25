@@ -29,6 +29,7 @@ flutter:
     - assets/fonts/
     - assets/artifacts/
     - assets/image/
+    - assets/favicon.png
 
   fonts:
     - family: GISDK

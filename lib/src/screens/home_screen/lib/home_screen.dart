@@ -176,14 +176,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           children: [
                             Icon(
-                              Icons.auto_fix_high,
+                              Icons.calculate_outlined,
                               size: 20,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '聖啓の塵の再構築を何度でもシミュレーション',
+                                '再構築のスコア更新率を比較して最適な投資先を判断',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -193,14 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           children: [
                             Icon(
-                              Icons.calculate_outlined,
+                              Icons.replay,
                               size: 20,
                               color: Theme.of(context).colorScheme.primary,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '再構築のスコア更新率を比較して最適な投資先を判断',
+                                '聖啓の塵の再構築を何度でもシミュレーション',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -274,6 +274,56 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+
+                // 初心者向け説明
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '初めての方へ',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'ゲーム内からプロフィール編集→キャラクターラインナップを設定し、キャラ詳細表示中にしてください。変更後は、一度ゲームを終了してください。',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

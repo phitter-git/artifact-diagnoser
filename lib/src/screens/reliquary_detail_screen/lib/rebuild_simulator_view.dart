@@ -1361,7 +1361,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                       updateMessage,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -2137,7 +2137,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         'https://artifact-diagnoser.vercel.app/',
       );
       final xUrl = 'https://x.com/intent/tweet?text=$encodedText&url=$homeUrl';
-      web.window.open(xUrl, '_blank');
+
+      // モバイルでBlankタブが残らないように、location.hrefを使用
+      web.window.location.href = xUrl;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
