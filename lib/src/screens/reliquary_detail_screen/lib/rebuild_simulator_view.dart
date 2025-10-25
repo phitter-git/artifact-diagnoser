@@ -68,6 +68,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   bool _isAnimating = false; // アニメーション実行中フラグ
   int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
   int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
+  double _resultOpacity = 0.0; // 結果表示のフェードイン用
 
   // アニメーション有効化フラグ
   bool _isAnimationEnabled = true;
@@ -178,9 +179,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   Widget _buildIntroductionCard() {
     return Card(
       elevation: 2,
-      color: Theme.of(
-        context,
-      ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -1061,8 +1060,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 // アニメーション完了後のみスコア比較を表示
                 if (!_isAnimating) ...[
                   const SizedBox(height: 8),
-                  // スコア比較
-                  _buildScoreComparison(trial),
+                  // スコア比較（フェードイン）
+                  AnimatedOpacity(
+                    opacity: _resultOpacity,
+                    duration: const Duration(milliseconds: 400),
+                    child: _buildScoreComparison(trial),
+                  ),
                 ],
               ],
             ),
@@ -1073,150 +1076,176 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
 
-          // アニメーション有効化チェックボックス
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          // フェードインでボタンを表示
+          AnimatedOpacity(
+            opacity: _resultOpacity,
+            duration: const Duration(milliseconds: 400),
+            child: Column(
               children: [
-                Checkbox(
-                  value: _isAnimationEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _isAnimationEnabled = value ?? true;
-                    });
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
+                // アニメーション有効化チェックボックス
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Checkbox(
+                        value: _isAnimationEnabled,
+                        onChanged: (value) {
+                          setState(() {
+                            _isAnimationEnabled = value ?? true;
+                          });
+                        },
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isAnimationEnabled = !_isAnimationEnabled;
+                          });
+                        },
+                        child: const Text(
+                          '演出を有効化',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isAnimationEnabled = !_isAnimationEnabled;
-                    });
-                  },
-                  child: const Text('演出を有効化', style: TextStyle(fontSize: 12)),
+
+                const SizedBox(height: 8),
+
+                // アクションボタン（横余白のみ追加）
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isCalculating ? null : _executeSimulation,
+                          icon: _isCalculating
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.refresh, size: 22),
+                          label: Text(
+                            _isCalculating ? '実行中...' : '再構築！',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(0, 50),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isCalculating ? null : _resetSimulation,
+                          icon: const Icon(Icons.close, size: 22),
+                          label: const Text(
+                            'リセット',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(0, 50),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error.withValues(alpha: 0.1),
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.error,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 8),
-
-          // アクションボタン（横余白のみ追加）
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isCalculating ? null : _executeSimulation,
-                    icon: _isCalculating
-                        ? SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).colorScheme.primary,
+                // シェアボタン（スコア更新時のみ表示）
+                if (_simulationTrial != null &&
+                    _simulationTrial!.isImproved) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        // 画像保存ボタン
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _captureAndDownload,
+                            icon: const Icon(Icons.download, size: 18),
+                            label: const Text(
+                              '画像保存',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withValues(alpha: 0.1),
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary,
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.secondary,
+                                width: 1.5,
                               ),
                             ),
-                          )
-                        : const Icon(Icons.refresh, size: 22),
-                    label: Text(
-                      _isCalculating ? '実行中...' : '再構築！',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(0, 50),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isCalculating ? null : _resetSimulation,
-                    icon: const Icon(Icons.close, size: 22),
-                    label: const Text('リセット', style: TextStyle(fontSize: 16)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(0, 50),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.1),
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.error,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // シェアボタン（スコア更新時のみ表示）
-          if (_simulationTrial != null && _simulationTrial!.isImproved) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  // 画像保存ボタン
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _captureAndDownload,
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('画像保存', style: TextStyle(fontSize: 14)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.1),
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.secondary,
-                          width: 1.5,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Xへ投稿ボタン
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _shareToX,
-                      icon: const Icon(Icons.share, size: 18),
-                      label: const Text('Xに投稿', style: TextStyle(fontSize: 14)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: const Color(
-                          0xFF1DA1F2,
-                        ).withValues(alpha: 0.1),
-                        foregroundColor: const Color(0xFF1DA1F2),
-                        side: const BorderSide(
-                          color: Color(0xFF1DA1F2),
-                          width: 1.5,
+                        const SizedBox(width: 8),
+                        // Xへ投稿ボタン
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _shareToX,
+                            icon: const Icon(Icons.share, size: 18),
+                            label: const Text(
+                              'Xに投稿',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              backgroundColor: const Color(
+                                0xFF1DA1F2,
+                              ).withValues(alpha: 0.1),
+                              foregroundColor: const Color(0xFF1DA1F2),
+                              side: const BorderSide(
+                                color: Color(0xFF1DA1F2),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ],
       ],
     );
@@ -1829,10 +1858,22 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       });
     }
 
-    // アニメーション完了
+    // アニメーション完了後、0.6秒待ってから結果をフェードイン表示
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
     setState(() {
       _isAnimating = false;
       _currentEnhancementLevel = enhancementCount; // 最終強化レベル
+      _resultOpacity = 0.0; // フェードイン開始
+    });
+
+    // フェードインアニメーション
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (!mounted) return;
+
+    setState(() {
+      _resultOpacity = 1.0;
     });
   }
 
