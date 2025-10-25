@@ -166,7 +166,7 @@ class _ReliquaryListScreenState extends State<ReliquaryListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '聖遺物データがありません',
+                    '聖遺物データがありません。\nゲーム内からキャラクターラインナップを登録するか、キャラ詳細表示中にしてください。',
                     style: Theme.of(
                       context,
                     ).textTheme.titleMedium?.copyWith(color: Colors.grey),
