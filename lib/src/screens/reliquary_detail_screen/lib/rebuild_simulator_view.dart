@@ -7,6 +7,7 @@ import 'dart:js_interop';
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/src/components/tappable_tooltip.dart';
 import 'package:web/web.dart' as web;
 
 /// 再構築シミュレータービュー
@@ -397,15 +398,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               children: [
                 const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 4),
-                Tooltip(
+                TappableTooltip(
                   message:
                       '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
-                  padding: const EdgeInsets.all(12),
-                  textStyle: const TextStyle(fontSize: 12, color: Colors.white),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
                   child: Icon(
                     Icons.help_outline,
                     size: 18,
@@ -423,6 +418,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   setState(() {
                     _selectedRebuildType = value;
                     _isRebuildTypeCollapsed = true; // 選択後に折りたたむ
+                    _rebuildAttemptCount = 0; // 試行回数をリセット
                     // ⑧ 種別選択時は既存の計算結果を使用（再計算なし）
                     // 更新率の表示のみ更新
                   });
@@ -723,18 +719,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Tooltip(
+                  TappableTooltip(
                     message:
                         '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
-                    padding: const EdgeInsets.all(12),
-                    textStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
                     child: Icon(
                       Icons.help_outline,
                       size: 18,
@@ -2138,8 +2125,8 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       );
       final xUrl = 'https://x.com/intent/tweet?text=$encodedText&url=$homeUrl';
 
-      // モバイルでBlankタブが残らないように、location.hrefを使用
-      web.window.location.href = xUrl;
+      // 別タブで開く（noopenerでセキュリティ対策）
+      web.window.open(xUrl, '_blank', 'noopener,noreferrer');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
