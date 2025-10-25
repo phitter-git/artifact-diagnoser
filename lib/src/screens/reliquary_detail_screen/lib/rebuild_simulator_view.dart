@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web;
 import 'dart:js_interop';
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
 import 'package:artifact_diagnoser/src/services/stat_append_resolver.dart';
+import 'package:artifact_diagnoser/src/components/tappable_tooltip.dart';
 import 'package:web/web.dart' as web;
 
 /// 再構築シミュレータービュー
@@ -65,6 +68,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   bool _isAnimating = false; // アニメーション実行中フラグ
   int _currentEnhancementLevel = 0; // 現在の強化レベル（0=初期値、1-5=+4,+8,+12,+16,+20）
   int _highlightedSubstatIndex = -1; // 光らせるサブステータスのインデックス
+  double _resultOpacity = 0.0; // 結果表示のフェードイン用
 
   // アニメーション有効化フラグ
   bool _isAnimationEnabled = true;
@@ -175,9 +179,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   Widget _buildIntroductionCard() {
     return Card(
       elevation: 2,
-      color: Theme.of(
-        context,
-      ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -395,15 +397,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
               children: [
                 const Text('再構築種別を選択', style: TextStyle(fontSize: 16)),
                 const SizedBox(width: 4),
-                Tooltip(
+                TappableTooltip(
                   message:
-                      '※更新率はモンテカルロ法(N=200k)による計算結果です。\nわずかな誤差(平均±0.22%)を含む場合があります。',
-                  padding: const EdgeInsets.all(12),
-                  textStyle: const TextStyle(fontSize: 12, color: Colors.white),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
                   child: Icon(
                     Icons.help_outline,
                     size: 18,
@@ -421,6 +417,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   setState(() {
                     _selectedRebuildType = value;
                     _isRebuildTypeCollapsed = true; // 選択後に折りたたむ
+                    _rebuildAttemptCount = 0; // 試行回数をリセット
                     // ⑧ 種別選択時は既存の計算結果を使用（再計算なし）
                     // 更新率の表示のみ更新
                   });
@@ -721,18 +718,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                     ),
                   ),
                   const SizedBox(width: 4),
-                  Tooltip(
+                  TappableTooltip(
                     message:
-                        '※この結果はモンテカルロ法(N=200k)によるシミュレーションを用いており、\nわずかな誤差(平均±0.22%)を含む場合があります。',
-                    padding: const EdgeInsets.all(12),
-                    textStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                        '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
                     child: Icon(
                       Icons.help_outline,
                       size: 18,
@@ -1072,8 +1060,12 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 // アニメーション完了後のみスコア比較を表示
                 if (!_isAnimating) ...[
                   const SizedBox(height: 8),
-                  // スコア比較
-                  _buildScoreComparison(trial),
+                  // スコア比較（フェードイン）
+                  AnimatedOpacity(
+                    opacity: _resultOpacity,
+                    duration: const Duration(milliseconds: 400),
+                    child: _buildScoreComparison(trial),
+                  ),
                 ],
               ],
             ),
@@ -1084,150 +1076,176 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         if (!_isAnimating) ...[
           const SizedBox(height: 8),
 
-          // アニメーション有効化チェックボックス
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          // フェードインでボタンを表示
+          AnimatedOpacity(
+            opacity: _resultOpacity,
+            duration: const Duration(milliseconds: 400),
+            child: Column(
               children: [
-                Checkbox(
-                  value: _isAnimationEnabled,
-                  onChanged: (value) {
-                    setState(() {
-                      _isAnimationEnabled = value ?? true;
-                    });
-                  },
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
+                // アニメーション有効化チェックボックス
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Checkbox(
+                        value: _isAnimationEnabled,
+                        onChanged: (value) {
+                          setState(() {
+                            _isAnimationEnabled = value ?? true;
+                          });
+                        },
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isAnimationEnabled = !_isAnimationEnabled;
+                          });
+                        },
+                        child: const Text(
+                          '演出を有効化',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isAnimationEnabled = !_isAnimationEnabled;
-                    });
-                  },
-                  child: const Text('演出を有効化', style: TextStyle(fontSize: 12)),
+
+                const SizedBox(height: 8),
+
+                // アクションボタン（横余白のみ追加）
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isCalculating ? null : _executeSimulation,
+                          icon: _isCalculating
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.refresh, size: 22),
+                          label: Text(
+                            _isCalculating ? '実行中...' : '再構築！',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(0, 50),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.1),
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isCalculating ? null : _resetSimulation,
+                          icon: const Icon(Icons.close, size: 22),
+                          label: const Text(
+                            'リセット',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            minimumSize: const Size(0, 50),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error.withValues(alpha: 0.1),
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.error,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 8),
-
-          // アクションボタン（横余白のみ追加）
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isCalculating ? null : _executeSimulation,
-                    icon: _isCalculating
-                        ? SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Theme.of(context).colorScheme.primary,
+                // シェアボタン（スコア更新時のみ表示）
+                if (_simulationTrial != null &&
+                    _simulationTrial!.isImproved) ...[
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      children: [
+                        // 画像保存ボタン
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _captureAndDownload,
+                            icon: const Icon(Icons.download, size: 18),
+                            label: const Text(
+                              '画像保存',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withValues(alpha: 0.1),
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary,
+                              side: BorderSide(
+                                color: Theme.of(context).colorScheme.secondary,
+                                width: 1.5,
                               ),
                             ),
-                          )
-                        : const Icon(Icons.refresh, size: 22),
-                    label: Text(
-                      _isCalculating ? '実行中...' : '再構築！',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(0, 50),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isCalculating ? null : _resetSimulation,
-                    icon: const Icon(Icons.close, size: 22),
-                    label: const Text('リセット', style: TextStyle(fontSize: 16)),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      minimumSize: const Size(0, 50),
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.1),
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.error,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // シェアボタン（スコア更新時のみ表示）
-          if (_simulationTrial != null && _simulationTrial!.isImproved) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  // 画像保存ボタン
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _captureAndDownload,
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('画像保存', style: TextStyle(fontSize: 14)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary.withValues(alpha: 0.1),
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.secondary,
-                          width: 1.5,
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Xへ投稿ボタン
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _shareToX,
-                      icon: const Icon(Icons.share, size: 18),
-                      label: const Text('Xに投稿', style: TextStyle(fontSize: 14)),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: const Color(
-                          0xFF1DA1F2,
-                        ).withValues(alpha: 0.1),
-                        foregroundColor: const Color(0xFF1DA1F2),
-                        side: const BorderSide(
-                          color: Color(0xFF1DA1F2),
-                          width: 1.5,
+                        const SizedBox(width: 8),
+                        // Xへ投稿ボタン
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _shareToX,
+                            icon: const Icon(Icons.share, size: 18),
+                            label: const Text(
+                              'Xに投稿',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              backgroundColor: const Color(
+                                0xFF1DA1F2,
+                              ).withValues(alpha: 0.1),
+                              foregroundColor: const Color(0xFF1DA1F2),
+                              side: const BorderSide(
+                                color: Color(0xFF1DA1F2),
+                                width: 1.5,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ],
       ],
     );
@@ -1359,7 +1377,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                       updateMessage,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.8),
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -1794,11 +1812,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
     // アニメーションが無効の場合は即座に結果を表示
     if (!_isAnimationEnabled) {
+      // 初期3OPの場合は4回、初期4OPの場合は5回の強化
+      final enhancementCount = widget.summary.initialSubstatCount == 3 ? 4 : 5;
       setState(() {
         _simulationTrial = trial;
         _isCalculating = false;
         _isAnimating = false;
-        _currentEnhancementLevel = 5; // 最終強化レベル
+        _currentEnhancementLevel = enhancementCount; // 最終強化レベル
         _highlightedSubstatIndex = -1;
       });
       return;
@@ -1815,7 +1835,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     });
 
     // 5回の強化ロールをアニメーション表示（0.3秒間隔）
-    for (int rollLevel = 1; rollLevel <= 5; rollLevel++) {
+    // 初期3OPの場合は4回、初期4OPの場合は5回の強化
+    final enhancementCount = widget.summary.initialSubstatCount == 3 ? 4 : 5;
+    for (int rollLevel = 1; rollLevel <= enhancementCount; rollLevel++) {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
 
@@ -1836,10 +1858,22 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       });
     }
 
-    // アニメーション完了
+    // アニメーション完了後、0.6秒待ってから結果をフェードイン表示
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
     setState(() {
       _isAnimating = false;
-      _currentEnhancementLevel = 5; // 最終強化レベル
+      _currentEnhancementLevel = enhancementCount; // 最終強化レベル
+      _resultOpacity = 0.0; // フェードイン開始
+    });
+
+    // フェードインアニメーション
+    await Future.delayed(const Duration(milliseconds: 50));
+    if (!mounted) return;
+
+    setState(() {
+      _resultOpacity = 1.0;
     });
   }
 
@@ -1885,7 +1919,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     });
   }
 
-  /// スクリーンショットを撮影して画像をダウンロード
+  /// スクリーンショットを撮影してモーダルで表示
   Future<void> _captureAndDownload() async {
     try {
       final boundary =
@@ -1915,29 +1949,150 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // Uint8Listに変換
       final bytes = byteData.buffer.asUint8List();
 
-      // Blobを作成してダウンロード
+      // Blobを作成してURLを生成
       final blob = web.Blob(
         [bytes.toJS].toJS,
         web.BlobPropertyBag(type: 'image/png'),
       );
-      final url = web.URL.createObjectURL(blob);
-      final anchor = web.HTMLAnchorElement()
-        ..href = url
-        ..download =
-            'rebuild_result_${DateTime.now().millisecondsSinceEpoch}.png';
-      anchor.click();
-      web.URL.revokeObjectURL(url);
+      final imageUrl = web.URL.createObjectURL(blob);
 
+      // HTMLのimg要素を作成
+      final imgElement =
+          web.document.createElement('img') as web.HTMLImageElement;
+      imgElement.src = imageUrl;
+      imgElement.style.maxWidth = '100%';
+      imgElement.style.maxHeight = '100%';
+      imgElement.style.objectFit = 'contain';
+      imgElement.style.display = 'block';
+      imgElement.style.margin = 'auto';
+
+      // コンテナを作成
+      final container = web.document.createElement('div') as web.HTMLDivElement;
+      container.style.width = '100%';
+      container.style.height = '100%';
+      container.style.display = 'flex';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
+      container.appendChild(imgElement);
+
+      // ユニークなビューIDを生成
+      final viewId = 'image-preview-${DateTime.now().millisecondsSinceEpoch}';
+
+      // プラットフォームビューとして登録
+      // ignore: undefined_prefixed_name
+      ui_web.platformViewRegistry.registerViewFactory(
+        viewId,
+        (int _) => container,
+      );
+
+      // モーダルダイアログで画像を表示
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('画像を保存しました')));
+        await showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.black87,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ヘッダー
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '再構築結果',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 説明テキスト
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      'モバイル: 長押しで保存 / PC: 右クリックで保存',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 画像表示（HTML img要素を使用）
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: HtmlElementView(viewType: viewId),
+                    ),
+                  ),
+                  // クリップボードにコピーボタン
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          try {
+                            // ClipboardItemを使用して画像をクリップボードにコピー
+                            final clipboardItem = web.ClipboardItem(
+                              {'image/png': blob}.jsify() as JSObject,
+                            );
+
+                            // JSPromiseとしてwriteを呼び出す
+                            final promise = web.window.navigator.clipboard
+                                .write([clipboardItem].toJS);
+                            await promise.toDart;
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('クリップボードにコピーしました'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('コピーに失敗しました: $e')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.content_copy),
+                        label: const Text(
+                          'クリップボードにコピー',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // ダイアログを閉じた後、URLを解放
+        web.URL.revokeObjectURL(imageUrl);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('画像の保存に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text('画像の表示に失敗しました: $e')));
       }
     }
   }
@@ -2014,7 +2169,15 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
         'https://artifact-diagnoser.vercel.app/',
       );
       final xUrl = 'https://x.com/intent/tweet?text=$encodedText&url=$homeUrl';
-      web.window.open(xUrl, '_blank');
+
+      // 別タブで開く（noopenerでセキュリティ対策）
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+      anchor.href = xUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      web.document.body!.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

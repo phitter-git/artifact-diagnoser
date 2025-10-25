@@ -56,7 +56,7 @@ class SettingsDrawer extends StatelessWidget {
             leading: const Icon(Icons.info_outline),
             title: Text('バージョン', style: Theme.of(context).textTheme.bodyLarge),
             subtitle: Text(
-              '0.1.0',
+              '1.0.0',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             enabled: false,
