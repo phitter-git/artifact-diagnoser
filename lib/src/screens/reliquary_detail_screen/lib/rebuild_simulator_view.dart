@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui' as ui;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' as ui_web;
 import 'dart:js_interop';
 import 'package:artifact_diagnoser/src/models/domain.dart';
 import 'package:artifact_diagnoser/src/services/rebuild_simulator_service.dart';
@@ -1885,7 +1887,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     });
   }
 
-  /// スクリーンショットを撮影して画像をダウンロード
+  /// スクリーンショットを撮影してモーダルで表示
   Future<void> _captureAndDownload() async {
     try {
       final boundary =
@@ -1915,29 +1917,150 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // Uint8Listに変換
       final bytes = byteData.buffer.asUint8List();
 
-      // Blobを作成してダウンロード
+      // Blobを作成してURLを生成
       final blob = web.Blob(
         [bytes.toJS].toJS,
         web.BlobPropertyBag(type: 'image/png'),
       );
-      final url = web.URL.createObjectURL(blob);
-      final anchor = web.HTMLAnchorElement()
-        ..href = url
-        ..download =
-            'rebuild_result_${DateTime.now().millisecondsSinceEpoch}.png';
-      anchor.click();
-      web.URL.revokeObjectURL(url);
+      final imageUrl = web.URL.createObjectURL(blob);
 
+      // HTMLのimg要素を作成
+      final imgElement =
+          web.document.createElement('img') as web.HTMLImageElement;
+      imgElement.src = imageUrl;
+      imgElement.style.maxWidth = '100%';
+      imgElement.style.maxHeight = '100%';
+      imgElement.style.objectFit = 'contain';
+      imgElement.style.display = 'block';
+      imgElement.style.margin = 'auto';
+
+      // コンテナを作成
+      final container = web.document.createElement('div') as web.HTMLDivElement;
+      container.style.width = '100%';
+      container.style.height = '100%';
+      container.style.display = 'flex';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
+      container.appendChild(imgElement);
+
+      // ユニークなビューIDを生成
+      final viewId = 'image-preview-${DateTime.now().millisecondsSinceEpoch}';
+
+      // プラットフォームビューとして登録
+      // ignore: undefined_prefixed_name
+      ui_web.platformViewRegistry.registerViewFactory(
+        viewId,
+        (int viewId) => container,
+      );
+
+      // モーダルダイアログで画像を表示
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('画像を保存しました')));
+        await showDialog(
+          context: context,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.black87,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ヘッダー
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          '再構築結果',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // 説明テキスト
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.0),
+                    child: Text(
+                      'モバイル: 長押しで保存 / PC: 右クリックで保存',
+                      style: TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 画像表示（HTML img要素を使用）
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: HtmlElementView(viewType: viewId),
+                    ),
+                  ),
+                  // クリップボードにコピーボタン
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          try {
+                            // ClipboardItemを使用して画像をクリップボードにコピー
+                            final clipboardItem = web.ClipboardItem(
+                              {'image/png': blob}.jsify() as JSObject,
+                            );
+
+                            // JSPromiseとしてwriteを呼び出す
+                            final promise = web.window.navigator.clipboard
+                                .write([clipboardItem].toJS);
+                            await promise.toDart;
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('クリップボードにコピーしました'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('コピーに失敗しました: $e')),
+                              );
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.content_copy),
+                        label: const Text(
+                          'クリップボードにコピー',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // ダイアログを閉じた後、URLを解放
+        web.URL.revokeObjectURL(imageUrl);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('画像の保存に失敗しました: $e')));
+        ).showSnackBar(SnackBar(content: Text('画像の表示に失敗しました: $e')));
       }
     }
   }
