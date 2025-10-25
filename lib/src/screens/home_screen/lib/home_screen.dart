@@ -311,12 +311,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.primary,
-                                    fontWeight: FontWeight.bold,
                                   ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'ゲーム内からプロフィール編集→キャラクターラインナップを設定し、キャラ詳細表示中にしてください。変更後は、一度ゲームを終了してください。',
+                              'ゲーム内から自身のプロフィール編集を開き、キャラクターラインナップに分析したい聖遺物を装備したキャラクターを設定し、キャラ詳細表示中にしてください。変更後は、一度ゲームを終了してください。',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

@@ -178,8 +178,10 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
   /// 説明カード（初回表示時）
   Widget _buildIntroductionCard() {
     return Card(
-      elevation: 2,
-      color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+      elevation: 0,
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
