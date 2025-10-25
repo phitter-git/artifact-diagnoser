@@ -1982,7 +1982,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       // ignore: undefined_prefixed_name
       ui_web.platformViewRegistry.registerViewFactory(
         viewId,
-        (int viewId) => container,
+        (int _) => container,
       );
 
       // モーダルダイアログで画像を表示
@@ -2171,7 +2171,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
       final xUrl = 'https://x.com/intent/tweet?text=$encodedText&url=$homeUrl';
 
       // 別タブで開く（noopenerでセキュリティ対策）
-      web.window.open(xUrl, '_blank', 'noopener,noreferrer');
+      final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+      anchor.href = xUrl;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      web.document.body!.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
