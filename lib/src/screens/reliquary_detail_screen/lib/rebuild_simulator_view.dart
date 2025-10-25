@@ -756,7 +756,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   _isAnimationEnabled = !_isAnimationEnabled;
                 });
               },
-              child: const Text('演出を有効化', style: TextStyle(fontSize: 12)),
+              child: const Text('演出を再生する', style: TextStyle(fontSize: 12)),
             ),
           ],
         ),
@@ -1105,7 +1105,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                           });
                         },
                         child: const Text(
-                          '演出を有効化',
+                          '演出を再生する',
                           style: TextStyle(fontSize: 12),
                         ),
                       ),
