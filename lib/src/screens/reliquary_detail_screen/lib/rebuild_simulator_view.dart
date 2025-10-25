@@ -1783,11 +1783,13 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
 
     // アニメーションが無効の場合は即座に結果を表示
     if (!_isAnimationEnabled) {
+      // 初期3OPの場合は4回、初期4OPの場合は5回の強化
+      final enhancementCount = widget.summary.initialSubstatCount == 3 ? 4 : 5;
       setState(() {
         _simulationTrial = trial;
         _isCalculating = false;
         _isAnimating = false;
-        _currentEnhancementLevel = 5; // 最終強化レベル
+        _currentEnhancementLevel = enhancementCount; // 最終強化レベル
         _highlightedSubstatIndex = -1;
       });
       return;
@@ -1804,7 +1806,9 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     });
 
     // 5回の強化ロールをアニメーション表示（0.3秒間隔）
-    for (int rollLevel = 1; rollLevel <= 5; rollLevel++) {
+    // 初期3OPの場合は4回、初期4OPの場合は5回の強化
+    final enhancementCount = widget.summary.initialSubstatCount == 3 ? 4 : 5;
+    for (int rollLevel = 1; rollLevel <= enhancementCount; rollLevel++) {
       await Future.delayed(const Duration(milliseconds: 300));
       if (!mounted) return;
 
@@ -1828,7 +1832,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
     // アニメーション完了
     setState(() {
       _isAnimating = false;
-      _currentEnhancementLevel = 5; // 最終強化レベル
+      _currentEnhancementLevel = enhancementCount; // 最終強化レベル
     });
   }
 
