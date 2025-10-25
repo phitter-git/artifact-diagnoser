@@ -397,7 +397,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                 const SizedBox(width: 4),
                 Tooltip(
                   message:
-                      '※更新率はモンテカルロ法(N=200k)による計算結果です。\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                      '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
                   padding: const EdgeInsets.all(12),
                   textStyle: const TextStyle(fontSize: 12, color: Colors.white),
                   decoration: BoxDecoration(
@@ -723,7 +723,7 @@ class _RebuildSimulatorViewState extends State<RebuildSimulatorView>
                   const SizedBox(width: 4),
                   Tooltip(
                     message:
-                        '※この結果はモンテカルロ法(N=200k)によるシミュレーションを用いており、\nわずかな誤差(平均±0.22%)を含む場合があります。',
+                        '更新率はモンテカルロ法(N=200k)によるシミュレーションを用いており、わずかな誤差(平均±0.22%)を含む場合があります。',
                     padding: const EdgeInsets.all(12),
                     textStyle: const TextStyle(
                       fontSize: 12,

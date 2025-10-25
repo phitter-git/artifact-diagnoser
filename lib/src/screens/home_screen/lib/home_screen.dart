@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '「聖啓の塵」の再構築を何度でもシミュレーション',
+                                '聖啓の塵の再構築を何度でもシミュレーション',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '再構築のスコア更新率を確認して最適な投資先を判断',
+                                '再構築のスコア更新率を比較して最適な投資先を判断',
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
