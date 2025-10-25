@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:artifact_diagnoser/src/services/user_data_service.dart';
+import 'package:artifact_diagnoser/src/services/uid_history_service.dart';
 import 'package:artifact_diagnoser/src/components/settings_drawer.dart';
 import 'package:artifact_diagnoser/main.dart';
 
@@ -16,13 +17,29 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _uidController = TextEditingController();
   final _userDataService = UserDataService();
+  final _uidHistoryService = UidHistoryService();
   bool _isLoading = false;
   String? _errorMessage;
+  List<String> _uidHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUidHistory();
+  }
 
   @override
   void dispose() {
     _uidController.dispose();
     super.dispose();
+  }
+
+  /// UID履歴を読み込み
+  Future<void> _loadUidHistory() async {
+    final history = await _uidHistoryService.getHistory();
+    setState(() {
+      _uidHistory = history;
+    });
   }
 
   /// UID入力のバリデーション
@@ -40,8 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// データ読み込み処理
-  Future<void> _handleLoadData() async {
-    final uid = _uidController.text;
+  Future<void> _handleLoadData([String? specificUid]) async {
+    final uid = specificUid ?? _uidController.text;
     final validationError = _validateUid(uid);
 
     if (validationError != null) {
@@ -61,6 +78,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final userData = await _userDataService.fetchUserData(uid);
 
       if (!mounted) return;
+
+      // 有効なUIDを履歴に追加
+      await _uidHistoryService.addToHistory(uid);
+      await _loadUidHistory();
 
       // 聖遺物一覧画面に遷移（userDataを渡す）
       Navigator.pushNamed(
@@ -260,6 +281,45 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Text('読み込み', style: TextStyle(fontSize: 16)),
                   ),
                 ),
+
+                // UID履歴表示
+                if (_uidHistory.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '直近の入力',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _uidHistory.map((uid) {
+                      return OutlinedButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () => _handleLoadData(uid),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                        ),
+                        child: Text(uid),
+                      );
+                    }).toList(),
+                  ),
+                ],
+
                 const SizedBox(height: 24),
 
                 // ヒント表示
